@@ -12,6 +12,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.babakriazi.nava.data.MusicRepository
+import com.babakriazi.nava.data.Prefs
 import com.babakriazi.nava.data.Song
 import com.babakriazi.nava.playback.PlayerController
 import com.google.android.material.button.MaterialButton
@@ -32,7 +33,7 @@ class PlaylistDetailActivity : AppCompatActivity() {
         repo = MusicRepository(this)
 
         val toolbar = findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.toolbar)
-        toolbar.title = name
+        toolbar.setTitle(name)
         toolbar.setNavigationOnClickListener { finish() }
 
         val recycler = findViewById<RecyclerView>(R.id.recycler)
@@ -47,7 +48,7 @@ class PlaylistDetailActivity : AppCompatActivity() {
                     .setTitle(song.title)
                     .setItems(arrayOf(getString(R.string.remove_from_playlist))) { _, _ ->
                         repo.removeSongFromPlaylist(playlistId, song.id)
-                        loadSongs(recycler, empty, adapter)
+                        loadSongs(recycler, empty, adapter, toolbar)
                     }
                     .show()
             }
@@ -66,26 +67,29 @@ class PlaylistDetailActivity : AppCompatActivity() {
             } else playList(songs, 0, true)
         }
 
-        loadSongs(recycler, empty, adapter)
+        loadSongs(recycler, empty, adapter, toolbar)
     }
 
-    private fun loadSongs(recycler: RecyclerView, empty: TextView, adapter: SongAdapter) {
+    private fun loadSongs(
+        recycler: RecyclerView,
+        empty: TextView,
+        adapter: SongAdapter,
+        toolbar: com.google.android.material.appbar.MaterialToolbar
+    ) {
         val pl = repo.getPlaylists().find { it.id == playlistId }
         val all = repo.scanSongs()
         songs = pl?.songIds?.mapNotNull { id -> all.find { it.id == id } } ?: emptyList()
         adapter.submit(songs)
         empty.visibility = if (songs.isEmpty()) View.VISIBLE else View.GONE
         recycler.visibility = if (songs.isEmpty()) View.GONE else View.VISIBLE
-        findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.toolbar)
-            .subtitle = getString(R.string.songs_count, songs.size)
+        toolbar.subtitle = getString(R.string.songs_count, songs.size)
     }
 
     private fun playList(list: List<Song>, index: Int, shuffle: Boolean) {
         PlayerController.connect(this) {
             PlayerController.playSongs(list, index)
             PlayerController.setShuffle(shuffle)
-            // Save queue for resume
-            val prefs = com.babakriazi.nava.data.Prefs(this)
+            val prefs = Prefs(this)
             prefs.lastSongIds = list.map { it.id }
             prefs.lastIndex = index
             prefs.shuffle = shuffle

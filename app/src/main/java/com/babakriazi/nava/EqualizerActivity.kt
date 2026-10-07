@@ -41,7 +41,11 @@ class EqualizerActivity : AppCompatActivity() {
 
         var sessionId = MusicService.audioSessionId
         if (sessionId == 0) {
-            sessionId = MusicService.playerInstance?.audioSessionId ?: 0
+            try {
+                sessionId = MusicService.playerInstance?.audioSessionId ?: 0
+            } catch (_: Exception) {
+                sessionId = 0
+            }
         }
 
         if (sessionId == 0) {
@@ -78,7 +82,6 @@ class EqualizerActivity : AppCompatActivity() {
             return
         }
 
-        // Restore saved state
         val enabled = prefs.eqEnabled
         eq.enabled = enabled
         bassBoost?.enabled = enabled

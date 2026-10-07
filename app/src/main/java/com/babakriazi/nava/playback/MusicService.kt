@@ -34,19 +34,27 @@ class MusicService : MediaSessionService() {
             .build()
 
         playerInstance = player
-        audioSessionId = player.audioSessionId
+        syncSession(player)
 
         player.addListener(object : Player.Listener {
             override fun onPlaybackStateChanged(playbackState: Int) {
-                audioSessionId = player.audioSessionId
+                syncSession(player)
             }
 
             override fun onIsPlayingChanged(isPlaying: Boolean) {
-                audioSessionId = player.audioSessionId
+                syncSession(player)
             }
         })
 
         mediaSession = MediaSession.Builder(this, player).build()
+    }
+
+    private fun syncSession(player: ExoPlayer) {
+        try {
+            audioSessionId = player.audioSessionId
+        } catch (_: Exception) {
+            audioSessionId = 0
+        }
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? {
