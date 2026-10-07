@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Nava</string>
+    <string name="app_name">Bobbit Nava</string>
     <string name="library">Library</string>
     <string name="playlists">Playlists</string>
     <string name="now_playing">Now Playing</string>
@@ -34,4 +34,6 @@
     <string name="repeat_one">Repeat one</string>
     <string name="new_title">New title</string>
     <string name="renamed">Renamed</string>
+    <string name="empty_playlist">This playlist is empty</string>
+    <string name="remove_from_playlist">Remove from playlist</string>
 </resources>
