@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Nava</string>
+    <string name="library">Library</string>
+    <string name="playlists">Playlists</string>
+    <string name="now_playing">Now Playing</string>
+    <string name="equalizer">Equalizer</string>
+    <string name="search_hint">Search songs…</string>
+    <string name="no_songs">No songs found</string>
+    <string name="no_playlists">No playlists yet</string>
+    <string name="create_playlist">New Playlist</string>
+    <string name="playlist_name">Playlist name</string>
+    <string name="add_to_playlist">Add to playlist</string>
+    <string name="delete">Delete</string>
+    <string name="rename">Rename</string>
+    <string name="songs_count">%d songs</string>
+    <string name="permission_required">Storage permission is required to play local music</string>
+    <string name="unknown_artist">Unknown Artist</string>
+    <string name="unknown_album">Unknown Album</string>
+    <string name="shuffle">Shuffle</string>
+    <string name="repeat">Repeat</string>
+    <string name="queue">Queue</string>
+</resources>

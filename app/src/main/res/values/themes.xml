@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Nava" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="colorPrimary">#C9A227</item>
+        <item name="colorPrimaryContainer">#3D2E0A</item>
+        <item name="colorOnPrimary">#1A1200</item>
+        <item name="colorSecondary">#4ECDC4</item>
+        <item name="colorSecondaryContainer">#0A3D3A</item>
+        <item name="colorSurface">#0F1419</item>
+        <item name="colorOnSurface">#E8E4D9</item>
+        <item name="android:statusBarColor">#0A0E12</item>
+        <item name="android:navigationBarColor">#0A0E12</item>
+        <item name="android:windowBackground">@drawable/bg_eslimi</item>
+    </style>
+</resources>
