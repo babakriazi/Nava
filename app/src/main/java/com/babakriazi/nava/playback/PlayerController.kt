@@ -7,6 +7,7 @@ import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
+import com.babakriazi.nava.data.Prefs
 import com.babakriazi.nava.data.Song
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
@@ -36,7 +37,7 @@ object PlayerController {
         controllerFuture = null
     }
 
-    fun playSongs(songs: List<Song>, startIndex: Int = 0) {
+    fun playSongs(songs: List<Song>, startIndex: Int = 0, startPositionMs: Long = 0) {
         val c = controller ?: return
         val items = songs.map { song ->
             MediaItem.Builder()
@@ -51,7 +52,7 @@ object PlayerController {
                 )
                 .build()
         }
-        c.setMediaItems(items, startIndex, 0)
+        c.setMediaItems(items, startIndex.coerceIn(0, (items.size - 1).coerceAtLeast(0)), startPositionMs)
         c.prepare()
         c.play()
     }
@@ -74,5 +75,21 @@ object PlayerController {
 
     fun setRepeat(mode: Int) {
         controller?.repeatMode = mode
+    }
+
+    fun saveState(context: Context) {
+        val c = controller ?: return
+        val prefs = Prefs(context)
+        val ids = mutableListOf<Long>()
+        for (i in 0 until c.mediaItemCount) {
+            c.getMediaItemAt(i).mediaId.toLongOrNull()?.let { ids.add(it) }
+        }
+        if (ids.isNotEmpty()) {
+            prefs.lastSongIds = ids
+            prefs.lastIndex = c.currentMediaItemIndex.coerceAtLeast(0)
+            prefs.lastPosition = c.currentPosition.coerceAtLeast(0)
+            prefs.shuffle = c.shuffleModeEnabled
+            prefs.repeatMode = c.repeatMode
+        }
     }
 }

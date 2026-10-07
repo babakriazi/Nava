@@ -10,6 +10,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.media3.common.Player
+import com.babakriazi.nava.data.Prefs
 import com.babakriazi.nava.playback.PlayerController
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -25,6 +26,7 @@ class NowPlayingActivity : AppCompatActivity() {
     private lateinit var btnPlay: FloatingActionButton
     private lateinit var btnShuffle: ImageButton
     private lateinit var btnRepeat: ImageButton
+    private lateinit var prefs: Prefs
     private val handler = Handler(Looper.getMainLooper())
     private var userSeeking = false
 
@@ -38,6 +40,7 @@ class NowPlayingActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_now_playing)
+        prefs = Prefs(this)
 
         findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.toolbar)
             .setNavigationOnClickListener { finish() }
@@ -63,6 +66,7 @@ class NowPlayingActivity : AppCompatActivity() {
         btnShuffle.setOnClickListener {
             val c = PlayerController.controller ?: return@setOnClickListener
             c.shuffleModeEnabled = !c.shuffleModeEnabled
+            prefs.shuffle = c.shuffleModeEnabled
             updateModeButtons()
             Toast.makeText(
                 this,
@@ -71,7 +75,6 @@ class NowPlayingActivity : AppCompatActivity() {
             ).show()
         }
 
-        // Three-state: Normal → Repeat All → Repeat One → Normal
         btnRepeat.setOnClickListener { cycleRepeat() }
 
         seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
@@ -82,13 +85,17 @@ class NowPlayingActivity : AppCompatActivity() {
             override fun onStopTrackingTouch(sb: SeekBar?) {
                 userSeeking = false
                 PlayerController.seekTo(seekBar.progress.toLong())
+                PlayerController.saveState(this@NowPlayingActivity)
             }
         })
 
         PlayerController.connect(this) {
             PlayerController.controller?.addListener(object : Player.Listener {
                 override fun onIsPlayingChanged(isPlaying: Boolean) { refresh() }
-                override fun onMediaItemTransition(item: androidx.media3.common.MediaItem?, reason: Int) { refresh() }
+                override fun onMediaItemTransition(item: androidx.media3.common.MediaItem?, reason: Int) {
+                    refresh()
+                    PlayerController.saveState(this@NowPlayingActivity)
+                }
                 override fun onRepeatModeChanged(repeatMode: Int) { updateModeButtons() }
                 override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) { updateModeButtons() }
             })
@@ -104,6 +111,7 @@ class NowPlayingActivity : AppCompatActivity() {
             else -> Player.REPEAT_MODE_OFF
         }
         c.repeatMode = next
+        prefs.repeatMode = next
         updateModeButtons()
         Toast.makeText(this, txtRepeatMode.text, Toast.LENGTH_SHORT).show()
     }
@@ -140,6 +148,7 @@ class NowPlayingActivity : AppCompatActivity() {
     override fun onPause() {
         super.onPause()
         handler.removeCallbacks(tick)
+        PlayerController.saveState(this)
     }
 
     private fun refresh() {

@@ -21,6 +21,7 @@ import androidx.fragment.app.FragmentActivity
 import androidx.media3.common.Player
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import com.babakriazi.nava.data.MusicRepository
+import com.babakriazi.nava.data.Prefs
 import com.babakriazi.nava.data.Song
 import com.babakriazi.nava.playback.PlayerController
 import com.google.android.material.card.MaterialCardView
@@ -30,6 +31,7 @@ import com.google.android.material.tabs.TabLayoutMediator
 class MainActivity : AppCompatActivity() {
 
     lateinit var repository: MusicRepository
+    lateinit var prefs: Prefs
     var allSongs: List<Song> = emptyList()
     var sortMode: SortMode = SortMode.TITLE
 
@@ -37,6 +39,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var miniTitle: TextView
     private lateinit var miniPlayPause: ImageButton
     private var sleepTimer: CountDownTimer? = null
+    private var restoredOnce = false
 
     enum class SortMode { TITLE, ARTIST, DURATION }
 
@@ -45,6 +48,7 @@ class MainActivity : AppCompatActivity() {
     ) { results ->
         if (results.values.all { it }) {
             loadLibrary()
+            tryRestoreLastSession()
         } else {
             Toast.makeText(this, getString(R.string.permission_required), Toast.LENGTH_LONG).show()
         }
@@ -55,10 +59,11 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         repository = MusicRepository(this)
+        prefs = Prefs(this)
 
         val toolbar = findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.toolbar)
         setSupportActionBar(toolbar)
-        supportActionBar?.title = "Nava"
+        supportActionBar?.title = getString(R.string.app_name)
 
         val viewPager = findViewById<androidx.viewpager2.widget.ViewPager2>(R.id.viewPager)
         val tabLayout = findViewById<TabLayout>(R.id.tabLayout)
@@ -81,11 +86,22 @@ class MainActivity : AppCompatActivity() {
         requestPerms()
         PlayerController.connect(this) {
             PlayerController.controller?.addListener(object : Player.Listener {
-                override fun onIsPlayingChanged(isPlaying: Boolean) { updateMini() }
-                override fun onMediaItemTransition(item: androidx.media3.common.MediaItem?, reason: Int) { updateMini() }
+                override fun onIsPlayingChanged(isPlaying: Boolean) {
+                    updateMini()
+                    if (!isPlaying) PlayerController.saveState(this@MainActivity)
+                }
+                override fun onMediaItemTransition(item: androidx.media3.common.MediaItem?, reason: Int) {
+                    updateMini()
+                    PlayerController.saveState(this@MainActivity)
+                }
             })
             updateMini()
         }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        PlayerController.saveState(this)
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -103,6 +119,7 @@ class MainActivity : AppCompatActivity() {
                 if (allSongs.isNotEmpty()) {
                     playSongList(sortedSongs(), 0)
                     PlayerController.setShuffle(true)
+                    prefs.shuffle = true
                     Toast.makeText(this, "Shuffle on", Toast.LENGTH_SHORT).show()
                 }
                 return true
@@ -159,6 +176,7 @@ class MainActivity : AppCompatActivity() {
                     override fun onTick(millisUntilFinished: Long) {}
                     override fun onFinish() {
                         PlayerController.controller?.pause()
+                        PlayerController.saveState(this@MainActivity)
                         Toast.makeText(this@MainActivity, "Sleep timer — paused", Toast.LENGTH_LONG).show()
                     }
                 }.start()
@@ -192,7 +210,10 @@ class MainActivity : AppCompatActivity() {
         val need = perms.any {
             ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
         }
-        if (need) permissionLauncher.launch(perms.toTypedArray()) else loadLibrary()
+        if (need) permissionLauncher.launch(perms.toTypedArray()) else {
+            loadLibrary()
+            tryRestoreLastSession()
+        }
     }
 
     fun loadLibrary() {
@@ -203,9 +224,38 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /** Restore last queue/position once after library is ready */
+    private fun tryRestoreLastSession() {
+        if (restoredOnce) return
+        restoredOnce = true
+        val ids = prefs.lastSongIds
+        if (ids.isEmpty() || allSongs.isEmpty()) return
+
+        val queue = ids.mapNotNull { id -> allSongs.find { it.id == id } }
+        if (queue.isEmpty()) return
+
+        val index = prefs.lastIndex.coerceIn(0, queue.size - 1)
+        val pos = prefs.lastPosition
+
+        PlayerController.connect(this) {
+            val c = PlayerController.controller ?: return@connect
+            // Only restore if nothing is currently loaded
+            if (c.mediaItemCount == 0) {
+                PlayerController.playSongs(queue, index, pos)
+                c.pause() // prepare at position but don't auto-start loudly
+                PlayerController.setShuffle(prefs.shuffle)
+                PlayerController.setRepeat(prefs.repeatMode)
+                updateMini()
+            }
+        }
+    }
+
     fun playSongList(songs: List<Song>, index: Int) {
         PlayerController.connect(this) {
             PlayerController.playSongs(songs, index)
+            prefs.lastSongIds = songs.map { it.id }
+            prefs.lastIndex = index
+            prefs.lastPosition = 0
             updateMini()
         }
     }
@@ -227,6 +277,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         sleepTimer?.cancel()
+        PlayerController.saveState(this)
         super.onDestroy()
     }
 
