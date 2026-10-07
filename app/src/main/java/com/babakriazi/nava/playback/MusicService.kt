@@ -13,11 +13,9 @@ class MusicService : MediaSessionService() {
     companion object {
         @Volatile
         var audioSessionId: Int = 0
-            private set
 
         @Volatile
         var playerInstance: ExoPlayer? = null
-            private set
     }
 
     private var mediaSession: MediaSession? = null
@@ -36,14 +34,17 @@ class MusicService : MediaSessionService() {
             .build()
 
         playerInstance = player
+        audioSessionId = player.audioSessionId
 
         player.addListener(object : Player.Listener {
-            override fun onAudioSessionIdChanged(audioSessionId: Int) {
-                MusicService.audioSessionId = audioSessionId
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                audioSessionId = player.audioSessionId
+            }
+
+            override fun onIsPlayingChanged(isPlaying: Boolean) {
+                audioSessionId = player.audioSessionId
             }
         })
-        // Initial value
-        audioSessionId = player.audioSessionId
 
         mediaSession = MediaSession.Builder(this, player).build()
     }

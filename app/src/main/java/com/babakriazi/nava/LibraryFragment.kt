@@ -1,5 +1,6 @@
 package com.babakriazi.nava
 
+import android.app.Activity
 import android.content.ContentValues
 import android.content.Intent
 import android.media.RingtoneManager
@@ -108,53 +109,35 @@ class LibraryFragment : Fragment() {
     }
 
     private fun deleteSong(song: Song) {
+        val act = activity ?: return
         try {
             val uri = Uri.parse(song.uri)
-            val rows = requireContext().contentResolver.delete(uri, null, null)
-            if (rows > 0) {
-                Toast.makeText(requireContext(), "Deleted", Toast.LENGTH_SHORT).show()
-                (activity as? MainActivity)?.loadLibrary()
-            } else {
-                // Fallback: hide from library by filtering after rescan may still show
-                // Try MediaStore delete by id
-                val delUri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
-                val deleted = requireContext().contentResolver.delete(
-                    delUri,
-                    "${MediaStore.Audio.Media._ID}=?",
-                    arrayOf(song.id.toString())
-                )
-                if (deleted > 0) {
-                    Toast.makeText(requireContext(), "Deleted", Toast.LENGTH_SHORT).show()
-                    (activity as? MainActivity)?.loadLibrary()
-                } else {
-                    Toast.makeText(
-                        requireContext(),
-                        "Could not delete (system may protect this file)",
-                        Toast.LENGTH_LONG
-                    ).show()
-                }
-            }
-        } catch (e: SecurityException) {
-            Toast.makeText(
-                requireContext(),
-                "Permission denied — Android may require confirmation dialog",
-                Toast.LENGTH_LONG
-            ).show()
-            // On Android 10+ may need createDeleteRequest
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                try {
-                    val uri = Uri.parse(song.uri)
-                    val request = MediaStore.createDeleteRequest(
-                        requireContext().contentResolver,
-                        listOf(uri)
-                    )
-                    startIntentSenderForResult(request.intentSender, 1001, null, 0, 0, 0)
-                } catch (ex: Exception) {
-                    Toast.makeText(requireContext(), "Delete failed: ${ex.message}", Toast.LENGTH_LONG).show()
+                val request = MediaStore.createDeleteRequest(
+                    act.contentResolver,
+                    listOf(uri)
+                )
+                startIntentSenderForResult(request.intentSender, 1001, null, 0, 0, 0, null)
+            } else {
+                val rows = act.contentResolver.delete(uri, null, null)
+                if (rows > 0) {
+                    Toast.makeText(requireContext(), "Deleted", Toast.LENGTH_SHORT).show()
+                    (act as? MainActivity)?.loadLibrary()
+                } else {
+                    Toast.makeText(requireContext(), "Could not delete file", Toast.LENGTH_LONG).show()
                 }
             }
         } catch (e: Exception) {
             Toast.makeText(requireContext(), "Delete failed: ${e.message}", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == 1001 && resultCode == Activity.RESULT_OK) {
+            Toast.makeText(requireContext(), "Deleted", Toast.LENGTH_SHORT).show()
+            (activity as? MainActivity)?.loadLibrary()
         }
     }
 
