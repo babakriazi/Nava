@@ -21,6 +21,10 @@ class PlaylistDetailActivity : AppCompatActivity() {
 
     private lateinit var repo: MusicRepository
     private lateinit var playlistId: String
+    private lateinit var adapter: SongAdapter
+    private lateinit var recycler: RecyclerView
+    private lateinit var empty: TextView
+    private lateinit var toolbar: com.google.android.material.appbar.MaterialToolbar
     private var songs: List<Song> = emptyList()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -32,13 +36,14 @@ class PlaylistDetailActivity : AppCompatActivity() {
 
         repo = MusicRepository(this)
 
-        val toolbar = findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.toolbar)
+        toolbar = findViewById(R.id.toolbar)
         toolbar.setTitle(name)
         toolbar.setNavigationOnClickListener { finish() }
 
-        val recycler = findViewById<RecyclerView>(R.id.recycler)
-        val empty = findViewById<TextView>(R.id.txtEmpty)
-        val adapter = SongAdapter(
+        recycler = findViewById(R.id.recycler)
+        empty = findViewById(R.id.txtEmpty)
+
+        adapter = SongAdapter(
             onClick = { song, list ->
                 val idx = list.indexOfFirst { it.id == song.id }.coerceAtLeast(0)
                 playList(list, idx, false)
@@ -48,7 +53,7 @@ class PlaylistDetailActivity : AppCompatActivity() {
                     .setTitle(song.title)
                     .setItems(arrayOf(getString(R.string.remove_from_playlist))) { _, _ ->
                         repo.removeSongFromPlaylist(playlistId, song.id)
-                        loadSongs(recycler, empty, adapter, toolbar)
+                        loadSongs()
                     }
                     .show()
             }
@@ -65,15 +70,10 @@ class PlaylistDetailActivity : AppCompatActivity() {
             else playList(songs, 0, true)
         }
 
-        loadSongs(recycler, empty, adapter, toolbar)
+        loadSongs()
     }
 
-    private fun loadSongs(
-        recycler: RecyclerView,
-        empty: TextView,
-        adapter: SongAdapter,
-        toolbar: com.google.android.material.appbar.MaterialToolbar
-    ) {
+    private fun loadSongs() {
         val pl = repo.getPlaylists().find { it.id == playlistId }
         val all = repo.scanSongs()
         songs = pl?.songIds?.mapNotNull { id -> all.find { it.id == id } } ?: emptyList()
