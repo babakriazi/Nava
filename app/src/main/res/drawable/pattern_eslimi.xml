@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+    <!-- Geometric star / arabesque motif -->
+    <path
+        android:pathData="M60,10 L68,42 L100,42 L74,62 L84,94 L60,74 L36,94 L46,62 L20,42 L52,42 Z"
+        android:strokeWidth="1.2"
+        android:strokeColor="#33C9A227"
+        android:fillColor="#12C9A227" />
+    <path
+        android:pathData="M60,28 L64,44 L80,44 L67,54 L72,70 L60,60 L48,70 L53,54 L40,44 L56,44 Z"
+        android:strokeWidth="1"
+        android:strokeColor="#284ECDC4"
+        android:fillColor="#00000000" />
+    <path
+        android:pathData="M60,5 L60,115 M5,60 L115,60"
+        android:strokeWidth="0.6"
+        android:strokeColor="#18C9A227" />
+    <path
+        android:pathData="M20,20 L100,100 M100,20 L20,100"
+        android:strokeWidth="0.5"
+        android:strokeColor="#144ECDC4" />
+</vector>

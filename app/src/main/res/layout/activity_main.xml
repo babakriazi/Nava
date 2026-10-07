@@ -5,12 +5,13 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fitsSystemWindows="true"
-    android:background="@drawable/bg_eslimi">
+    android:background="@drawable/bg_main">
 
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#E60A0E12">
+        android:background="#CC070B0F"
+        app:elevation="0dp">
 
         <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/toolbar"
@@ -18,6 +19,7 @@
             android:layout_height="?attr/actionBarSize"
             app:title="Nava"
             app:titleTextColor="@color/gold"
+            app:subtitle="✦ local music"
             app:subtitleTextColor="@color/teal" />
 
         <com.google.android.material.tabs.TabLayout
@@ -26,6 +28,7 @@
             android:layout_height="wrap_content"
             android:background="#00000000"
             app:tabIndicatorColor="@color/gold"
+            app:tabIndicatorFullWidth="false"
             app:tabSelectedTextColor="@color/gold"
             app:tabTextColor="@color/text_secondary"
             app:tabMode="fixed"
@@ -39,41 +42,47 @@
         android:layout_height="match_parent"
         app:layout_behavior="@string/appbar_scrolling_view_behavior" />
 
-    <!-- Mini player bar -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/miniPlayer"
         android:layout_width="match_parent"
-        android:layout_height="64dp"
+        android:layout_height="68dp"
         android:layout_gravity="bottom"
-        android:layout_margin="10dp"
+        android:layout_margin="12dp"
         android:visibility="gone"
-        app:cardBackgroundColor="@color/bg_card"
-        app:cardCornerRadius="16dp"
-        app:cardElevation="8dp"
-        app:strokeWidth="1dp"
-        app:strokeColor="#33C9A227">
+        app:cardBackgroundColor="#E61A222D"
+        app:cardCornerRadius="18dp"
+        app:cardElevation="10dp"
+        app:strokeWidth="1.5dp"
+        app:strokeColor="#66C9A227">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:paddingHorizontal="12dp">
+            android:paddingHorizontal="14dp">
+
+            <View
+                android:layout_width="4dp"
+                android:layout_height="36dp"
+                android:background="@drawable/accent_bar" />
 
             <TextView
                 android:id="@+id/miniTitle"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
+                android:layout_marginStart="12dp"
                 android:textColor="@color/text_primary"
                 android:textSize="14sp"
+                android:textStyle="bold"
                 android:maxLines="1"
                 android:ellipsize="end" />
 
             <ImageButton
                 android:id="@+id/miniPlayPause"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@android:drawable/ic_media_play"
                 android:contentDescription="Play"

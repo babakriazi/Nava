@@ -8,8 +8,8 @@
         <item name="colorSecondaryContainer">#0A3D3A</item>
         <item name="colorSurface">#0F1419</item>
         <item name="colorOnSurface">#E8E4D9</item>
-        <item name="android:statusBarColor">#0A0E12</item>
-        <item name="android:navigationBarColor">#0A0E12</item>
-        <item name="android:windowBackground">@drawable/bg_eslimi</item>
+        <item name="android:statusBarColor">#070B0F</item>
+        <item name="android:navigationBarColor">#070B0F</item>
+        <item name="android:windowBackground">@drawable/bg_main</item>
     </style>
 </resources>

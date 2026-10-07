@@ -3,11 +3,22 @@ package com.babakriazi.nava.playback
 import android.content.Intent
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
+import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 
 class MusicService : MediaSessionService() {
+
+    companion object {
+        @Volatile
+        var audioSessionId: Int = 0
+            private set
+
+        @Volatile
+        var playerInstance: ExoPlayer? = null
+            private set
+    }
 
     private var mediaSession: MediaSession? = null
 
@@ -23,6 +34,16 @@ class MusicService : MediaSessionService() {
             )
             .setHandleAudioBecomingNoisy(true)
             .build()
+
+        playerInstance = player
+
+        player.addListener(object : Player.Listener {
+            override fun onAudioSessionIdChanged(audioSessionId: Int) {
+                MusicService.audioSessionId = audioSessionId
+            }
+        })
+        // Initial value
+        audioSessionId = player.audioSessionId
 
         mediaSession = MediaSession.Builder(this, player).build()
     }
@@ -44,6 +65,8 @@ class MusicService : MediaSessionService() {
             release()
             mediaSession = null
         }
+        playerInstance = null
+        audioSessionId = 0
         super.onDestroy()
     }
 }

@@ -1,37 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Base deep night -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#070B0F" />
+        </shape>
+    </item>
+    <!-- Top gold radial -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="520dp"
+                android:centerX="0.2"
+                android:centerY="0.0"
+                android:startColor="#55C9A227"
+                android:endColor="#00000000" />
+        </shape>
+    </item>
+    <!-- Bottom teal radial -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="480dp"
+                android:centerX="1.0"
+                android:centerY="1.0"
+                android:startColor="#404ECDC4"
+                android:endColor="#00000000" />
+        </shape>
+    </item>
+    <!-- Diagonal wash -->
     <item>
         <shape android:shape="rectangle">
             <gradient
                 android:type="linear"
-                android:angle="145"
-                android:startColor="#080C10"
-                android:centerColor="#101820"
-                android:endColor="#0A1218" />
-        </shape>
-    </item>
-    <!-- Soft gold wash -->
-    <item>
-        <shape android:shape="rectangle">
-            <gradient
-                android:type="radial"
-                android:gradientRadius="420dp"
-                android:centerX="0.15"
-                android:centerY="0.1"
-                android:startColor="#22C9A227"
-                android:endColor="#00000000" />
-        </shape>
-    </item>
-    <!-- Teal accent glow -->
-    <item>
-        <shape android:shape="rectangle">
-            <gradient
-                android:type="radial"
-                android:gradientRadius="380dp"
-                android:centerX="0.9"
-                android:centerY="0.85"
-                android:startColor="#184ECDC4"
-                android:endColor="#00000000" />
+                android:angle="135"
+                android:startColor="#18C9A227"
+                android:centerColor="#00000000"
+                android:endColor="#184ECDC4" />
         </shape>
     </item>
 </layer-list>
