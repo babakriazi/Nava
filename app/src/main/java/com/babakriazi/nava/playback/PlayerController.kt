@@ -4,7 +4,6 @@ import android.content.ComponentName
 import android.content.Context
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
-import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.babakriazi.nava.data.Prefs
@@ -31,12 +30,6 @@ object PlayerController {
         }, MoreExecutors.directExecutor())
     }
 
-    fun disconnect() {
-        controllerFuture?.let { MediaController.releaseFuture(it) }
-        controller = null
-        controllerFuture = null
-    }
-
     fun playSongs(songs: List<Song>, startIndex: Int = 0, startPositionMs: Long = 0) {
         val c = controller ?: return
         val items = songs.map { song ->
@@ -52,7 +45,8 @@ object PlayerController {
                 )
                 .build()
         }
-        c.setMediaItems(items, startIndex.coerceIn(0, (items.size - 1).coerceAtLeast(0)), startPositionMs)
+        val idx = startIndex.coerceIn(0, (items.size - 1).coerceAtLeast(0))
+        c.setMediaItems(items, idx, startPositionMs)
         c.prepare()
         c.play()
     }
@@ -62,20 +56,11 @@ object PlayerController {
         if (c.isPlaying) c.pause() else c.play()
     }
 
-    fun next() = controller?.seekToNextMediaItem()
-    fun previous() = controller?.seekToPreviousMediaItem()
-
-    fun seekTo(pos: Long) {
-        controller?.seekTo(pos)
-    }
-
-    fun setShuffle(enabled: Boolean) {
-        controller?.shuffleModeEnabled = enabled
-    }
-
-    fun setRepeat(mode: Int) {
-        controller?.repeatMode = mode
-    }
+    fun next() { controller?.seekToNextMediaItem() }
+    fun previous() { controller?.seekToPreviousMediaItem() }
+    fun seekTo(pos: Long) { controller?.seekTo(pos) }
+    fun setShuffle(enabled: Boolean) { controller?.shuffleModeEnabled = enabled }
+    fun setRepeat(mode: Int) { controller?.repeatMode = mode }
 
     fun saveState(context: Context) {
         val c = controller ?: return
@@ -85,11 +70,11 @@ object PlayerController {
             c.getMediaItemAt(i).mediaId.toLongOrNull()?.let { ids.add(it) }
         }
         if (ids.isNotEmpty()) {
-            prefs.lastSongIds = ids
-            prefs.lastIndex = c.currentMediaItemIndex.coerceAtLeast(0)
-            prefs.lastPosition = c.currentPosition.coerceAtLeast(0)
-            prefs.shuffle = c.shuffleModeEnabled
-            prefs.repeatMode = c.repeatMode
+            prefs.setLastSongIds(ids)
+            prefs.setLastIndex(c.currentMediaItemIndex.coerceAtLeast(0))
+            prefs.setLastPosition(c.currentPosition.coerceAtLeast(0))
+            prefs.setShuffle(c.shuffleModeEnabled)
+            prefs.setRepeatMode(c.repeatMode)
         }
     }
 }
