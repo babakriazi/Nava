@@ -1,6 +1,12 @@
 package com.babakriazi.nava
 
+import android.content.ContentValues
+import android.content.Intent
+import android.media.RingtoneManager
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.LayoutInflater
@@ -34,7 +40,7 @@ class LibraryFragment : Fragment() {
                 val idx = list.indexOf(song)
                 (activity as? MainActivity)?.playSongList(list, idx.coerceAtLeast(0))
             },
-            onMore = { song -> showAddToPlaylist(song) }
+            onMore = { song -> showSongMenu(song) }
         )
         recycler.layoutManager = LinearLayoutManager(requireContext())
         recycler.adapter = adapter
@@ -49,7 +55,7 @@ class LibraryFragment : Fragment() {
 
         val main = activity as? MainActivity
         if (main != null && main.allSongs.isNotEmpty()) {
-            refresh(main.allSongs)
+            refresh(main.sortedSongs())
         }
     }
 
@@ -66,6 +72,29 @@ class LibraryFragment : Fragment() {
         adapter.submit(filtered)
     }
 
+    private fun showSongMenu(song: Song) {
+        val items = arrayOf(
+            getString(R.string.add_to_playlist),
+            getString(R.string.set_ringtone),
+            getString(R.string.play_all)
+        )
+        AlertDialog.Builder(requireContext())
+            .setTitle(song.title)
+            .setItems(items) { _, which ->
+                when (which) {
+                    0 -> showAddToPlaylist(song)
+                    1 -> setAsRingtone(song)
+                    2 -> {
+                        val main = activity as? MainActivity ?: return@setItems
+                        val list = main.sortedSongs()
+                        val idx = list.indexOfFirst { it.id == song.id }.coerceAtLeast(0)
+                        main.playSongList(list, idx)
+                    }
+                }
+            }
+            .show()
+    }
+
     private fun showAddToPlaylist(song: Song) {
         val main = activity as? MainActivity ?: return
         val playlists = main.repository.getPlaylists()
@@ -77,10 +106,49 @@ class LibraryFragment : Fragment() {
         AlertDialog.Builder(requireContext())
             .setTitle(R.string.add_to_playlist)
             .setItems(names) { _, which ->
-                main.repository.addSongToPlaylist(playlists[which].id, song.id)
-                Toast.makeText(requireContext(), "Added to ${names[which]}", Toast.LENGTH_SHORT).show()
+                val pl = playlists[which]
+                if (pl.songIds.contains(song.id)) {
+                    Toast.makeText(requireContext(), R.string.already_in_playlist, Toast.LENGTH_SHORT).show()
+                } else {
+                    main.repository.addSongToPlaylist(pl.id, song.id)
+                    Toast.makeText(
+                        requireContext(),
+                        getString(R.string.added_to_playlist, pl.name),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
             }
             .show()
+    }
+
+    private fun setAsRingtone(song: Song) {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.System.canWrite(requireContext())) {
+                Toast.makeText(requireContext(), "Allow modify system settings", Toast.LENGTH_LONG).show()
+                startActivity(
+                    Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS).apply {
+                        data = Uri.parse("package:${requireContext().packageName}")
+                    }
+                )
+                return
+            }
+            val uri = Uri.parse(song.uri)
+            RingtoneManager.setActualDefaultRingtoneUri(
+                requireContext(),
+                RingtoneManager.TYPE_RINGTONE,
+                uri
+            )
+            // Also try marking as ringtone in MediaStore
+            try {
+                val values = ContentValues().apply {
+                    put(android.provider.MediaStore.Audio.Media.IS_RINGTONE, true)
+                }
+                requireContext().contentResolver.update(uri, values, null, null)
+            } catch (_: Exception) {}
+            Toast.makeText(requireContext(), "Set as ringtone", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Toast.makeText(requireContext(), "Could not set ringtone: ${e.message}", Toast.LENGTH_LONG).show()
+        }
     }
 
     private class SongAdapter(
@@ -111,7 +179,8 @@ class LibraryFragment : Fragment() {
 
             fun bind(song: Song) {
                 title.text = song.title
-                artist.text = song.artist
+                artist.text = if (song.artist.isBlank() || song.artist == "<unknown>")
+                    itemView.context.getString(R.string.unknown_artist) else song.artist
                 duration.text = formatTime(song.duration)
                 itemView.setOnClickListener { onClick(song, items) }
                 more.setOnClickListener { onMore(song) }

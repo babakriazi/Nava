@@ -5,11 +5,15 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.os.CountDownTimer
+import android.view.Menu
+import android.view.MenuItem
 import android.view.View
 import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
@@ -27,10 +31,14 @@ class MainActivity : AppCompatActivity() {
 
     lateinit var repository: MusicRepository
     var allSongs: List<Song> = emptyList()
+    var sortMode: SortMode = SortMode.TITLE
 
     private lateinit var miniPlayer: MaterialCardView
     private lateinit var miniTitle: TextView
     private lateinit var miniPlayPause: ImageButton
+    private var sleepTimer: CountDownTimer? = null
+
+    enum class SortMode { TITLE, ARTIST, DURATION }
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -80,6 +88,99 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        menuInflater.inflate(R.menu.main_menu, menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        when (item.itemId) {
+            R.id.action_play_all -> {
+                if (allSongs.isNotEmpty()) playSongList(sortedSongs(), 0)
+                return true
+            }
+            R.id.action_shuffle_all -> {
+                if (allSongs.isNotEmpty()) {
+                    playSongList(sortedSongs(), 0)
+                    PlayerController.setShuffle(true)
+                    Toast.makeText(this, "Shuffle on", Toast.LENGTH_SHORT).show()
+                }
+                return true
+            }
+            R.id.action_sort -> {
+                showSortDialog()
+                return true
+            }
+            R.id.action_equalizer -> {
+                startActivity(Intent(this, EqualizerActivity::class.java))
+                return true
+            }
+            R.id.action_sleep -> {
+                showSleepTimerDialog()
+                return true
+            }
+        }
+        return super.onOptionsItemSelected(item)
+    }
+
+    private fun showSortDialog() {
+        val options = arrayOf(
+            getString(R.string.sort_title),
+            getString(R.string.sort_artist),
+            getString(R.string.sort_duration)
+        )
+        AlertDialog.Builder(this)
+            .setTitle(R.string.sort)
+            .setItems(options) { _, which ->
+                sortMode = when (which) {
+                    1 -> SortMode.ARTIST
+                    2 -> SortMode.DURATION
+                    else -> SortMode.TITLE
+                }
+                refreshLibraryFragment()
+            }
+            .show()
+    }
+
+    private fun showSleepTimerDialog() {
+        val options = arrayOf("Off", "15 min", "30 min", "45 min", "60 min", "90 min")
+        val minutes = intArrayOf(0, 15, 30, 45, 60, 90)
+        AlertDialog.Builder(this)
+            .setTitle(R.string.sleep_timer)
+            .setItems(options) { _, which ->
+                sleepTimer?.cancel()
+                sleepTimer = null
+                val min = minutes[which]
+                if (min == 0) {
+                    Toast.makeText(this, "Sleep timer off", Toast.LENGTH_SHORT).show()
+                    return@setItems
+                }
+                sleepTimer = object : CountDownTimer(min * 60_000L, 30_000L) {
+                    override fun onTick(millisUntilFinished: Long) {}
+                    override fun onFinish() {
+                        PlayerController.controller?.pause()
+                        Toast.makeText(this@MainActivity, "Sleep timer — paused", Toast.LENGTH_LONG).show()
+                    }
+                }.start()
+                Toast.makeText(this, "Sleep in $min min", Toast.LENGTH_SHORT).show()
+            }
+            .show()
+    }
+
+    fun sortedSongs(): List<Song> {
+        return when (sortMode) {
+            SortMode.TITLE -> allSongs.sortedBy { it.title.lowercase() }
+            SortMode.ARTIST -> allSongs.sortedBy { it.artist.lowercase() }
+            SortMode.DURATION -> allSongs.sortedBy { it.duration }
+        }
+    }
+
+    private fun refreshLibraryFragment() {
+        supportFragmentManager.fragments.forEach {
+            if (it is LibraryFragment) it.refresh(sortedSongs())
+        }
+    }
+
     private fun requestPerms() {
         val perms = mutableListOf<String>()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -97,7 +198,7 @@ class MainActivity : AppCompatActivity() {
     fun loadLibrary() {
         allSongs = repository.scanSongs()
         supportFragmentManager.fragments.forEach {
-            if (it is LibraryFragment) it.refresh(allSongs)
+            if (it is LibraryFragment) it.refresh(sortedSongs())
             if (it is PlaylistsFragment) it.refresh()
         }
     }
@@ -125,8 +226,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        sleepTimer?.cancel()
         super.onDestroy()
-        // keep service running; don't disconnect
     }
 
     private class PagerAdapter(fa: FragmentActivity) : FragmentStateAdapter(fa) {
