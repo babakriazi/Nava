@@ -77,6 +77,7 @@ class LibraryFragment : Fragment() {
     private fun showSongMenu(song: Song) {
         val items = arrayOf(
             getString(R.string.add_to_playlist),
+            getString(R.string.rename),
             getString(R.string.set_ringtone),
             getString(R.string.play_all),
             getString(R.string.delete)
@@ -86,17 +87,95 @@ class LibraryFragment : Fragment() {
             .setItems(items) { _, which ->
                 when (which) {
                     0 -> showAddToPlaylist(song)
-                    1 -> setAsRingtone(song)
-                    2 -> {
+                    1 -> showRename(song)
+                    2 -> setAsRingtone(song)
+                    3 -> {
                         val main = activity as? MainActivity ?: return@setItems
                         val list = main.sortedSongs()
                         val idx = list.indexOfFirst { it.id == song.id }.coerceAtLeast(0)
                         main.playSongList(list, idx)
                     }
-                    3 -> confirmDelete(song)
+                    4 -> confirmDelete(song)
                 }
             }
             .show()
+    }
+
+    private fun showRename(song: Song) {
+        val input = EditText(requireContext()).apply {
+            setText(song.title)
+            setSelection(song.title.length)
+            setPadding(48, 32, 48, 32)
+            hint = getString(R.string.new_title)
+        }
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.rename)
+            .setView(input)
+            .setPositiveButton("OK") { _, _ ->
+                val newTitle = input.text.toString().trim()
+                if (newTitle.isNotBlank() && newTitle != song.title) {
+                    renameSong(song, newTitle)
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun renameSong(song: Song, newTitle: String) {
+        try {
+            val uri = Uri.parse(song.uri)
+            val values = ContentValues().apply {
+                put(MediaStore.Audio.Media.TITLE, newTitle)
+                put(MediaStore.Audio.Media.DISPLAY_NAME, newTitle)
+            }
+            val rows = requireContext().contentResolver.update(uri, values, null, null)
+            if (rows > 0) {
+                Toast.makeText(requireContext(), R.string.renamed, Toast.LENGTH_SHORT).show()
+                (activity as? MainActivity)?.loadLibrary()
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                // Need user consent to write
+                try {
+                    val request = MediaStore.createWriteRequest(
+                        requireContext().contentResolver,
+                        listOf(uri)
+                    )
+                    // Store pending rename in arguments via activity result is complex;
+                    // ask user to grant then try again
+                    startIntentSenderForResult(request.intentSender, 1002, null, 0, 0, 0, null)
+                    Toast.makeText(
+                        requireContext(),
+                        "Allow edit, then rename again",
+                        Toast.LENGTH_LONG
+                    ).show()
+                } catch (e: Exception) {
+                    Toast.makeText(requireContext(), "Rename failed: ${e.message}", Toast.LENGTH_LONG).show()
+                }
+            } else {
+                Toast.makeText(requireContext(), "Could not rename", Toast.LENGTH_SHORT).show()
+            }
+        } catch (e: SecurityException) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                try {
+                    val uri = Uri.parse(song.uri)
+                    val request = MediaStore.createWriteRequest(
+                        requireContext().contentResolver,
+                        listOf(uri)
+                    )
+                    startIntentSenderForResult(request.intentSender, 1002, null, 0, 0, 0, null)
+                    Toast.makeText(
+                        requireContext(),
+                        "Allow edit, then rename again",
+                        Toast.LENGTH_LONG
+                    ).show()
+                } catch (ex: Exception) {
+                    Toast.makeText(requireContext(), "Rename failed: ${ex.message}", Toast.LENGTH_LONG).show()
+                }
+            } else {
+                Toast.makeText(requireContext(), "Permission denied", Toast.LENGTH_SHORT).show()
+            }
+        } catch (e: Exception) {
+            Toast.makeText(requireContext(), "Rename failed: ${e.message}", Toast.LENGTH_LONG).show()
+        }
     }
 
     private fun confirmDelete(song: Song) {
@@ -135,9 +214,16 @@ class LibraryFragment : Fragment() {
     @Deprecated("Deprecated in Java")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == 1001 && resultCode == Activity.RESULT_OK) {
-            Toast.makeText(requireContext(), "Deleted", Toast.LENGTH_SHORT).show()
-            (activity as? MainActivity)?.loadLibrary()
+        if (resultCode == Activity.RESULT_OK) {
+            when (requestCode) {
+                1001 -> {
+                    Toast.makeText(requireContext(), "Deleted", Toast.LENGTH_SHORT).show()
+                    (activity as? MainActivity)?.loadLibrary()
+                }
+                1002 -> {
+                    Toast.makeText(requireContext(), "Permission granted — rename again", Toast.LENGTH_SHORT).show()
+                }
+            }
         }
     }
 
