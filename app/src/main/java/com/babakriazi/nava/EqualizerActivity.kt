@@ -29,17 +29,21 @@ class EqualizerActivity : AppCompatActivity() {
         }
         root.addView(toolbar)
 
+        // MediaController (Media3) does not expose audioSessionId on the Player interface.
+        // Use session 0 (output mix) which works for system-wide EQ on most devices.
+        // Prefer live session if available via reflection for better isolation.
+        val sessionId = resolveAudioSessionId()
+
         try {
-            val sessionId = PlayerController.controller?.audioSessionId ?: 0
-            if (sessionId != 0) {
-                equalizer = Equalizer(0, sessionId).apply { enabled = true }
-            }
-        } catch (_: Exception) {}
+            equalizer = Equalizer(0, sessionId).apply { enabled = true }
+        } catch (e: Exception) {
+            equalizer = null
+        }
 
         val eq = equalizer
         if (eq == null) {
             val tv = TextView(this).apply {
-                text = "Equalizer unavailable — play a song first"
+                text = "Equalizer unavailable — play a song first, then open Equalizer again"
                 setTextColor(0xFF9A9588.toInt())
                 textSize = 14f
                 setPadding(0, 48, 0, 0)
@@ -83,8 +87,24 @@ class EqualizerActivity : AppCompatActivity() {
         setContentView(root)
     }
 
+    private fun resolveAudioSessionId(): Int {
+        val c = PlayerController.controller ?: return 0
+        return try {
+            // Try common method names across Media3 / framework Player implementations
+            val method = c.javaClass.methods.firstOrNull {
+                it.name == "getAudioSessionId" && it.parameterCount == 0
+            }
+            (method?.invoke(c) as? Int) ?: 0
+        } catch (_: Exception) {
+            0
+        }
+    }
+
     override fun onDestroy() {
-        // keep equalizer attached while session lives
+        try {
+            equalizer?.release()
+        } catch (_: Exception) {}
+        equalizer = null
         super.onDestroy()
     }
 }
