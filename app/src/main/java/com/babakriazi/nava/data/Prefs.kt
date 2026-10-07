@@ -1,52 +1,41 @@
 package com.babakriazi.nava.data
 
 import android.content.Context
-import android.content.SharedPreferences
 
 class Prefs(context: Context) {
 
-    private val p: SharedPreferences =
-        context.getSharedPreferences("nava_state", Context.MODE_PRIVATE)
+    private val p = context.getSharedPreferences("nava_state", Context.MODE_PRIVATE)
 
-    // --- Playback resume ---
-    var lastSongIds: List<Long>
-        get() {
-            val s = p.getString("last_song_ids", "") ?: ""
-            if (s.isBlank()) return emptyList()
-            return s.split(",").mapNotNull { it.toLongOrNull() }
-        }
-        set(value) {
-            p.edit().putString("last_song_ids", value.joinToString(",")).apply()
-        }
+    fun getLastSongIds(): List<Long> {
+        val s = p.getString("last_song_ids", "") ?: ""
+        if (s.isBlank()) return emptyList()
+        return s.split(",").mapNotNull { it.toLongOrNull() }
+    }
 
-    var lastIndex: Int
-        get() = p.getInt("last_index", 0)
-        set(v) = p.edit().putInt("last_index", v).apply()
+    fun setLastSongIds(value: List<Long>) {
+        p.edit().putString("last_song_ids", value.joinToString(",")).apply()
+    }
 
-    var lastPosition: Long
-        get() = p.getLong("last_position", 0L)
-        set(v) = p.edit().putLong("last_position", v).apply()
+    fun getLastIndex(): Int = p.getInt("last_index", 0)
+    fun setLastIndex(v: Int) { p.edit().putInt("last_index", v).apply() }
 
-    var shuffle: Boolean
-        get() = p.getBoolean("shuffle", false)
-        set(v) = p.edit().putBoolean("shuffle", v).apply()
+    fun getLastPosition(): Long = p.getLong("last_position", 0L)
+    fun setLastPosition(v: Long) { p.edit().putLong("last_position", v).apply() }
 
-    var repeatMode: Int
-        get() = p.getInt("repeat_mode", 0) // 0 off, 1 one, 2 all (Player constants)
-        set(v) = p.edit().putInt("repeat_mode", v).apply()
+    fun getShuffle(): Boolean = p.getBoolean("shuffle", false)
+    fun setShuffle(v: Boolean) { p.edit().putBoolean("shuffle", v).apply() }
 
-    // --- Equalizer ---
-    var eqEnabled: Boolean
-        get() = p.getBoolean("eq_enabled", true)
-        set(v) = p.edit().putBoolean("eq_enabled", v).apply()
+    fun getRepeatMode(): Int = p.getInt("repeat_mode", 0)
+    fun setRepeatMode(v: Int) { p.edit().putInt("repeat_mode", v).apply() }
 
-    var bassStrength: Int
-        get() = p.getInt("bass", 0)
-        set(v) = p.edit().putInt("bass", v).apply()
+    fun getEqEnabled(): Boolean = p.getBoolean("eq_enabled", true)
+    fun setEqEnabled(v: Boolean) { p.edit().putBoolean("eq_enabled", v).apply() }
 
-    var virtStrength: Int
-        get() = p.getInt("virt", 0)
-        set(v) = p.edit().putInt("virt", v).apply()
+    fun getBass(): Int = p.getInt("bass", 0)
+    fun setBass(v: Int) { p.edit().putInt("bass", v).apply() }
+
+    fun getVirt(): Int = p.getInt("virt", 0)
+    fun setVirt(v: Int) { p.edit().putInt("virt", v).apply() }
 
     fun saveBandLevel(band: Int, level: Int) {
         p.edit().putInt("band_$band", level).apply()
@@ -55,7 +44,6 @@ class Prefs(context: Context) {
     fun getBandLevel(band: Int, default: Int = 0): Int =
         p.getInt("band_$band", default)
 
-    var bandsSaved: Boolean
-        get() = p.getBoolean("bands_saved", false)
-        set(v) = p.edit().putBoolean("bands_saved", v).apply()
+    fun getBandsSaved(): Boolean = p.getBoolean("bands_saved", false)
+    fun setBandsSaved(v: Boolean) { p.edit().putBoolean("bands_saved", v).apply() }
 }

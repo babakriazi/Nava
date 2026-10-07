@@ -16,6 +16,18 @@ class MusicService : MediaSessionService() {
 
         @Volatile
         var playerInstance: ExoPlayer? = null
+
+        fun readAudioSessionId(player: Any?): Int {
+            if (player == null) return 0
+            return try {
+                val m = player.javaClass.methods.firstOrNull {
+                    it.name == "getAudioSessionId" && it.parameterCount == 0
+                }
+                (m?.invoke(player) as? Int) ?: 0
+            } catch (_: Exception) {
+                0
+            }
+        }
     }
 
     private var mediaSession: MediaSession? = null
@@ -34,27 +46,19 @@ class MusicService : MediaSessionService() {
             .build()
 
         playerInstance = player
-        syncSession(player)
+        audioSessionId = readAudioSessionId(player)
 
         player.addListener(object : Player.Listener {
             override fun onPlaybackStateChanged(playbackState: Int) {
-                syncSession(player)
+                audioSessionId = readAudioSessionId(player)
             }
 
             override fun onIsPlayingChanged(isPlaying: Boolean) {
-                syncSession(player)
+                audioSessionId = readAudioSessionId(player)
             }
         })
 
         mediaSession = MediaSession.Builder(this, player).build()
-    }
-
-    private fun syncSession(player: ExoPlayer) {
-        try {
-            audioSessionId = player.audioSessionId
-        } catch (_: Exception) {
-            audioSessionId = 0
-        }
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? {
