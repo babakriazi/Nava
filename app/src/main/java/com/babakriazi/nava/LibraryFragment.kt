@@ -6,6 +6,7 @@ import android.media.RingtoneManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.provider.MediaStore
 import android.provider.Settings
 import android.text.Editable
 import android.text.TextWatcher
@@ -76,7 +77,8 @@ class LibraryFragment : Fragment() {
         val items = arrayOf(
             getString(R.string.add_to_playlist),
             getString(R.string.set_ringtone),
-            getString(R.string.play_all)
+            getString(R.string.play_all),
+            getString(R.string.delete)
         )
         AlertDialog.Builder(requireContext())
             .setTitle(song.title)
@@ -90,9 +92,70 @@ class LibraryFragment : Fragment() {
                         val idx = list.indexOfFirst { it.id == song.id }.coerceAtLeast(0)
                         main.playSongList(list, idx)
                     }
+                    3 -> confirmDelete(song)
                 }
             }
             .show()
+    }
+
+    private fun confirmDelete(song: Song) {
+        AlertDialog.Builder(requireContext())
+            .setTitle("Delete song?")
+            .setMessage("Remove \"${song.title}\" from this device?\n\nThis cannot be undone.")
+            .setPositiveButton("Delete") { _, _ -> deleteSong(song) }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun deleteSong(song: Song) {
+        try {
+            val uri = Uri.parse(song.uri)
+            val rows = requireContext().contentResolver.delete(uri, null, null)
+            if (rows > 0) {
+                Toast.makeText(requireContext(), "Deleted", Toast.LENGTH_SHORT).show()
+                (activity as? MainActivity)?.loadLibrary()
+            } else {
+                // Fallback: hide from library by filtering after rescan may still show
+                // Try MediaStore delete by id
+                val delUri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+                val deleted = requireContext().contentResolver.delete(
+                    delUri,
+                    "${MediaStore.Audio.Media._ID}=?",
+                    arrayOf(song.id.toString())
+                )
+                if (deleted > 0) {
+                    Toast.makeText(requireContext(), "Deleted", Toast.LENGTH_SHORT).show()
+                    (activity as? MainActivity)?.loadLibrary()
+                } else {
+                    Toast.makeText(
+                        requireContext(),
+                        "Could not delete (system may protect this file)",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
+        } catch (e: SecurityException) {
+            Toast.makeText(
+                requireContext(),
+                "Permission denied — Android may require confirmation dialog",
+                Toast.LENGTH_LONG
+            ).show()
+            // On Android 10+ may need createDeleteRequest
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                try {
+                    val uri = Uri.parse(song.uri)
+                    val request = MediaStore.createDeleteRequest(
+                        requireContext().contentResolver,
+                        listOf(uri)
+                    )
+                    startIntentSenderForResult(request.intentSender, 1001, null, 0, 0, 0)
+                } catch (ex: Exception) {
+                    Toast.makeText(requireContext(), "Delete failed: ${ex.message}", Toast.LENGTH_LONG).show()
+                }
+            }
+        } catch (e: Exception) {
+            Toast.makeText(requireContext(), "Delete failed: ${e.message}", Toast.LENGTH_LONG).show()
+        }
     }
 
     private fun showAddToPlaylist(song: Song) {
@@ -138,10 +201,9 @@ class LibraryFragment : Fragment() {
                 RingtoneManager.TYPE_RINGTONE,
                 uri
             )
-            // Also try marking as ringtone in MediaStore
             try {
                 val values = ContentValues().apply {
-                    put(android.provider.MediaStore.Audio.Media.IS_RINGTONE, true)
+                    put(MediaStore.Audio.Media.IS_RINGTONE, true)
                 }
                 requireContext().contentResolver.update(uri, values, null, null)
             } catch (_: Exception) {}
