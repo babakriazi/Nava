@@ -11,6 +11,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SwitchCompat
+import com.babakriazi.nava.data.Prefs
 import com.babakriazi.nava.playback.MusicService
 
 class EqualizerActivity : AppCompatActivity() {
@@ -18,9 +19,11 @@ class EqualizerActivity : AppCompatActivity() {
     private var equalizer: Equalizer? = null
     private var bassBoost: BassBoost? = null
     private var virtualizer: Virtualizer? = null
+    private lateinit var prefs: Prefs
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        prefs = Prefs(this)
 
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -55,9 +58,9 @@ class EqualizerActivity : AppCompatActivity() {
         }
 
         try {
-            equalizer = Equalizer(Int.MAX_VALUE, sessionId).apply { enabled = true }
-            bassBoost = BassBoost(Int.MAX_VALUE, sessionId).apply { enabled = true; setStrength(0) }
-            virtualizer = Virtualizer(Int.MAX_VALUE, sessionId).apply { enabled = true; setStrength(0) }
+            equalizer = Equalizer(0, sessionId)
+            bassBoost = BassBoost(0, sessionId)
+            virtualizer = Virtualizer(0, sessionId)
         } catch (e: Exception) {
             Toast.makeText(this, "EQ error: ${e.message}", Toast.LENGTH_LONG).show()
         }
@@ -75,7 +78,30 @@ class EqualizerActivity : AppCompatActivity() {
             return
         }
 
-        // Enable switch
+        // Restore saved state
+        val enabled = prefs.eqEnabled
+        eq.enabled = enabled
+        bassBoost?.enabled = enabled
+        virtualizer?.enabled = enabled
+
+        try {
+            bassBoost?.setStrength(prefs.bassStrength.toShort())
+            virtualizer?.setStrength(prefs.virtStrength.toShort())
+        } catch (_: Exception) {}
+
+        val minLevel = eq.bandLevelRange[0].toInt()
+        val maxLevel = eq.bandLevelRange[1].toInt()
+        val bands = eq.numberOfBands.toInt()
+
+        if (prefs.bandsSaved) {
+            for (i in 0 until bands) {
+                try {
+                    val lvl = prefs.getBandLevel(i, 0)
+                    eq.setBandLevel(i.toShort(), lvl.toShort())
+                } catch (_: Exception) {}
+            }
+        }
+
         val enableRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
@@ -88,33 +114,33 @@ class EqualizerActivity : AppCompatActivity() {
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
         }
         val enableSwitch = SwitchCompat(this).apply {
-            isChecked = eq.enabled
+            isChecked = enabled
             setOnCheckedChangeListener { _, checked ->
                 eq.enabled = checked
                 bassBoost?.enabled = checked
                 virtualizer?.enabled = checked
+                prefs.eqEnabled = checked
             }
         }
         enableRow.addView(enableLabel)
         enableRow.addView(enableSwitch)
         root.addView(enableRow)
 
-        // Bass
         root.addView(sectionLabel("Bass Boost"))
-        root.addView(makeSeek(0, 1000, 0) { progress ->
-            try { bassBoost?.setStrength(progress.toShort()) } catch (_: Exception) {}
+        root.addView(makeSeek(0, 1000, prefs.bassStrength) { progress ->
+            try {
+                bassBoost?.setStrength(progress.toShort())
+                prefs.bassStrength = progress
+            } catch (_: Exception) {}
         })
 
-        // Virtualizer
         root.addView(sectionLabel("Virtualizer"))
-        root.addView(makeSeek(0, 1000, 0) { progress ->
-            try { virtualizer?.setStrength(progress.toShort()) } catch (_: Exception) {}
+        root.addView(makeSeek(0, 1000, prefs.virtStrength) { progress ->
+            try {
+                virtualizer?.setStrength(progress.toShort())
+                prefs.virtStrength = progress
+            } catch (_: Exception) {}
         })
-
-        // Bands
-        val bands = eq.numberOfBands.toInt()
-        val minLevel = eq.bandLevelRange[0].toInt()
-        val maxLevel = eq.bandLevelRange[1].toInt()
 
         for (i in 0 until bands) {
             val band = i.toShort()
@@ -122,10 +148,14 @@ class EqualizerActivity : AppCompatActivity() {
             val label = if (freqHz >= 1000) "${freqHz / 1000} kHz" else "$freqHz Hz"
             root.addView(sectionLabel(label))
 
-            val current = (eq.getBandLevel(band) - minLevel)
-            root.addView(makeSeek(0, maxLevel - minLevel, current) { progress ->
+            val currentLevel = eq.getBandLevel(band).toInt()
+            val progress = (currentLevel - minLevel).coerceIn(0, maxLevel - minLevel)
+            root.addView(makeSeek(0, maxLevel - minLevel, progress) { prog ->
                 try {
-                    eq.setBandLevel(band, (progress + minLevel).toShort())
+                    val level = prog + minLevel
+                    eq.setBandLevel(band, level.toShort())
+                    prefs.saveBandLevel(i, level)
+                    prefs.bandsSaved = true
                 } catch (_: Exception) {}
             })
         }
@@ -154,10 +184,5 @@ class EqualizerActivity : AppCompatActivity() {
                 override fun onStopTrackingTouch(sb: SeekBar?) {}
             })
         }
-    }
-
-    override fun onDestroy() {
-        // Keep effects alive while music plays — do not release on leave
-        super.onDestroy()
     }
 }

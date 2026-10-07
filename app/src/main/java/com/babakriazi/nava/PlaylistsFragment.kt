@@ -1,12 +1,12 @@
 package com.babakriazi.nava
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.TextView
-import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -40,6 +40,11 @@ class PlaylistsFragment : Fragment() {
         refresh()
     }
 
+    override fun onResume() {
+        super.onResume()
+        refresh()
+    }
+
     fun refresh() {
         val main = activity as? MainActivity ?: return
         val list = main.repository.getPlaylists()
@@ -66,14 +71,14 @@ class PlaylistsFragment : Fragment() {
             .show()
     }
 
+    /** Open detail screen — do NOT auto-play */
     private fun openPlaylist(playlist: Playlist) {
-        val main = activity as? MainActivity ?: return
-        val songs = main.allSongs.filter { playlist.songIds.contains(it.id) }
-        if (songs.isEmpty()) {
-            Toast.makeText(requireContext(), "Playlist is empty", Toast.LENGTH_SHORT).show()
-            return
-        }
-        main.playSongList(songs, 0)
+        startActivity(
+            Intent(requireContext(), PlaylistDetailActivity::class.java).apply {
+                putExtra("playlist_id", playlist.id)
+                putExtra("playlist_name", playlist.name)
+            }
+        )
     }
 
     private fun showPlaylistMenu(playlist: Playlist) {

@@ -42,6 +42,11 @@
             android:exported="false"
             android:parentActivityName=".NowPlayingActivity" />
 
+        <activity
+            android:name=".PlaylistDetailActivity"
+            android:exported="false"
+            android:parentActivityName=".MainActivity" />
+
         <service
             android:name=".playback.MusicService"
             android:exported="true"
