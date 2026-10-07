@@ -29,7 +29,9 @@
     <string name="sleep_timer">Sleep timer</string>
     <string name="already_in_playlist">Already in this playlist</string>
     <string name="added_to_playlist">Added to %s</string>
-    <string name="repeat_off">Repeat off</string>
+    <string name="repeat_off">Normal</string>
     <string name="repeat_all">Repeat all</string>
     <string name="repeat_one">Repeat one</string>
+    <string name="new_title">New title</string>
+    <string name="renamed">Renamed</string>
 </resources>

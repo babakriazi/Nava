@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/bg_eslimi"
+    android:background="@drawable/bg_main"
     android:fillViewport="true"
     android:fitsSystemWindows="true">
 
@@ -112,9 +112,9 @@
 
             <ImageButton
                 android:id="@+id/btnPrev"
-                android:layout_width="56dp"
-                android:layout_height="56dp"
-                android:layout_marginHorizontal="8dp"
+                android:layout_width="52dp"
+                android:layout_height="52dp"
+                android:layout_marginStart="4dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@android:drawable/ic_media_previous"
                 android:contentDescription="Previous"
@@ -124,6 +124,7 @@
                 android:id="@+id/btnPlayPause"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginHorizontal="8dp"
                 android:contentDescription="Play"
                 app:backgroundTint="@color/gold"
                 app:tint="#1A1200"
@@ -132,32 +133,43 @@
 
             <ImageButton
                 android:id="@+id/btnNext"
-                android:layout_width="56dp"
-                android:layout_height="56dp"
-                android:layout_marginHorizontal="8dp"
+                android:layout_width="52dp"
+                android:layout_height="52dp"
+                android:layout_marginEnd="4dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@android:drawable/ic_media_next"
                 android:contentDescription="Next"
                 app:tint="@color/text_primary" />
 
             <ImageButton
-                android:id="@+id/btnEq"
+                android:id="@+id/btnRepeat"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@android:drawable/ic_menu_manage"
-                android:contentDescription="@string/equalizer"
-                app:tint="@color/teal" />
+                android:src="@android:drawable/ic_menu_rotate"
+                android:contentDescription="@string/repeat"
+                android:alpha="0.45"
+                app:tint="@color/gold" />
         </LinearLayout>
 
         <TextView
+            android:id="@+id/txtRepeatMode"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="8dp"
             android:gravity="center"
-            android:text="Long-press Shuffle for Repeat modes"
+            android:text="Normal"
             android:textColor="@color/text_secondary"
-            android:textSize="11sp" />
+            android:textSize="12sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnEq"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="@string/equalizer"
+            android:textColor="@color/teal" />
 
     </LinearLayout>
 </ScrollView>

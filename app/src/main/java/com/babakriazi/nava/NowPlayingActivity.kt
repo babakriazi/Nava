@@ -11,6 +11,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.media3.common.Player
 import com.babakriazi.nava.playback.PlayerController
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 
 class NowPlayingActivity : AppCompatActivity() {
@@ -19,6 +20,7 @@ class NowPlayingActivity : AppCompatActivity() {
     private lateinit var txtArtist: TextView
     private lateinit var txtPosition: TextView
     private lateinit var txtDuration: TextView
+    private lateinit var txtRepeatMode: TextView
     private lateinit var seekBar: SeekBar
     private lateinit var btnPlay: FloatingActionButton
     private lateinit var btnShuffle: ImageButton
@@ -44,17 +46,17 @@ class NowPlayingActivity : AppCompatActivity() {
         txtArtist = findViewById(R.id.txtArtist)
         txtPosition = findViewById(R.id.txtPosition)
         txtDuration = findViewById(R.id.txtDuration)
+        txtRepeatMode = findViewById(R.id.txtRepeatMode)
         seekBar = findViewById(R.id.seekBar)
         btnPlay = findViewById(R.id.btnPlayPause)
         btnShuffle = findViewById(R.id.btnShuffle)
-        btnRepeat = findViewById(R.id.btnEq) // will repurpose layout: use btnEq area carefully
+        btnRepeat = findViewById(R.id.btnRepeat)
 
-        // Layout has btnEq — keep EQ, add repeat via long-press on shuffle or reuse
         findViewById<ImageButton>(R.id.btnPrev).setOnClickListener { PlayerController.previous() }
         findViewById<ImageButton>(R.id.btnNext).setOnClickListener { PlayerController.next() }
         btnPlay.setOnClickListener { PlayerController.togglePlayPause(); refresh() }
 
-        findViewById<ImageButton>(R.id.btnEq).setOnClickListener {
+        findViewById<MaterialButton>(R.id.btnEq).setOnClickListener {
             startActivity(Intent(this, EqualizerActivity::class.java))
         }
 
@@ -69,10 +71,8 @@ class NowPlayingActivity : AppCompatActivity() {
             ).show()
         }
 
-        btnShuffle.setOnLongClickListener {
-            cycleRepeat()
-            true
-        }
+        // Three-state: Normal → Repeat All → Repeat One → Normal
+        btnRepeat.setOnClickListener { cycleRepeat() }
 
         seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
@@ -104,18 +104,31 @@ class NowPlayingActivity : AppCompatActivity() {
             else -> Player.REPEAT_MODE_OFF
         }
         c.repeatMode = next
-        val msg = when (next) {
-            Player.REPEAT_MODE_ALL -> getString(R.string.repeat_all)
-            Player.REPEAT_MODE_ONE -> getString(R.string.repeat_one)
-            else -> getString(R.string.repeat_off)
-        }
-        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
         updateModeButtons()
+        Toast.makeText(this, txtRepeatMode.text, Toast.LENGTH_SHORT).show()
     }
 
     private fun updateModeButtons() {
         val c = PlayerController.controller ?: return
         btnShuffle.alpha = if (c.shuffleModeEnabled) 1f else 0.45f
+
+        when (c.repeatMode) {
+            Player.REPEAT_MODE_ALL -> {
+                btnRepeat.alpha = 1f
+                txtRepeatMode.text = "Repeat all"
+                txtRepeatMode.setTextColor(0xFFC9A227.toInt())
+            }
+            Player.REPEAT_MODE_ONE -> {
+                btnRepeat.alpha = 1f
+                txtRepeatMode.text = "Repeat one"
+                txtRepeatMode.setTextColor(0xFF4ECDC4.toInt())
+            }
+            else -> {
+                btnRepeat.alpha = 0.45f
+                txtRepeatMode.text = "Normal"
+                txtRepeatMode.setTextColor(0xFF9A9588.toInt())
+            }
+        }
     }
 
     override fun onResume() {
