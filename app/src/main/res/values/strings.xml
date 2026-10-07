@@ -7,7 +7,7 @@
     <string name="equalizer">Equalizer</string>
     <string name="search_hint">Search songs…</string>
     <string name="no_songs">No songs found</string>
-    <string name="no_playlists">No playlists yet</string>
+    <string name="no_playlists">No playlists yet\nTap + to create one</string>
     <string name="create_playlist">New Playlist</string>
     <string name="playlist_name">Playlist name</string>
     <string name="add_to_playlist">Add to playlist</string>
@@ -20,4 +20,16 @@
     <string name="shuffle">Shuffle</string>
     <string name="repeat">Repeat</string>
     <string name="queue">Queue</string>
+    <string name="play_all">Play All</string>
+    <string name="sort">Sort</string>
+    <string name="sort_title">Title</string>
+    <string name="sort_artist">Artist</string>
+    <string name="sort_duration">Duration</string>
+    <string name="set_ringtone">Set as ringtone</string>
+    <string name="sleep_timer">Sleep timer</string>
+    <string name="already_in_playlist">Already in this playlist</string>
+    <string name="added_to_playlist">Added to %s</string>
+    <string name="repeat_off">Repeat off</string>
+    <string name="repeat_all">Repeat all</string>
+    <string name="repeat_one">Repeat one</string>
 </resources>

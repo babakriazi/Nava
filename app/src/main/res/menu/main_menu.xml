@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+        android:id="@+id/action_play_all"
+        android:title="@string/play_all"
+        android:icon="@android:drawable/ic_media_play"
+        app:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/action_sort"
+        android:title="@string/sort"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_shuffle_all"
+        android:title="@string/shuffle"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_equalizer"
+        android:title="@string/equalizer"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_sleep"
+        android:title="@string/sleep_timer"
+        app:showAsAction="never" />
+</menu>
