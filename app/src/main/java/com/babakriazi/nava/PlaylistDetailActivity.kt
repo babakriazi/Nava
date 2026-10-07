@@ -41,7 +41,7 @@ class PlaylistDetailActivity : AppCompatActivity() {
         val adapter = SongAdapter(
             onClick = { song, list ->
                 val idx = list.indexOfFirst { it.id == song.id }.coerceAtLeast(0)
-                playList(list, idx, shuffle = false)
+                playList(list, idx, false)
             },
             onMore = { song ->
                 AlertDialog.Builder(this)
@@ -57,14 +57,12 @@ class PlaylistDetailActivity : AppCompatActivity() {
         recycler.adapter = adapter
 
         findViewById<MaterialButton>(R.id.btnPlayAll).setOnClickListener {
-            if (songs.isEmpty()) {
-                Toast.makeText(this, R.string.empty_playlist, Toast.LENGTH_SHORT).show()
-            } else playList(songs, 0, false)
+            if (songs.isEmpty()) Toast.makeText(this, R.string.empty_playlist, Toast.LENGTH_SHORT).show()
+            else playList(songs, 0, false)
         }
         findViewById<MaterialButton>(R.id.btnShuffle).setOnClickListener {
-            if (songs.isEmpty()) {
-                Toast.makeText(this, R.string.empty_playlist, Toast.LENGTH_SHORT).show()
-            } else playList(songs, 0, true)
+            if (songs.isEmpty()) Toast.makeText(this, R.string.empty_playlist, Toast.LENGTH_SHORT).show()
+            else playList(songs, 0, true)
         }
 
         loadSongs(recycler, empty, adapter, toolbar)
@@ -90,9 +88,9 @@ class PlaylistDetailActivity : AppCompatActivity() {
             PlayerController.playSongs(list, index)
             PlayerController.setShuffle(shuffle)
             val prefs = Prefs(this)
-            prefs.lastSongIds = list.map { it.id }
-            prefs.lastIndex = index
-            prefs.shuffle = shuffle
+            prefs.setLastSongIds(list.map { it.id })
+            prefs.setLastIndex(index)
+            prefs.setShuffle(shuffle)
         }
     }
 
@@ -100,28 +98,19 @@ class PlaylistDetailActivity : AppCompatActivity() {
         val onClick: (Song, List<Song>) -> Unit,
         val onMore: (Song) -> Unit
     ) : RecyclerView.Adapter<SongAdapter.VH>() {
-
         private var items = listOf<Song>()
-
-        fun submit(list: List<Song>) {
-            items = list
-            notifyDataSetChanged()
-        }
-
+        fun submit(list: List<Song>) { items = list; notifyDataSetChanged() }
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
             val v = LayoutInflater.from(parent.context).inflate(R.layout.item_song, parent, false)
             return VH(v)
         }
-
         override fun onBindViewHolder(holder: VH, position: Int) = holder.bind(items[position])
         override fun getItemCount() = items.size
-
         inner class VH(v: View) : RecyclerView.ViewHolder(v) {
             private val title: TextView = v.findViewById(R.id.txtTitle)
             private val artist: TextView = v.findViewById(R.id.txtArtist)
             private val duration: TextView = v.findViewById(R.id.txtDuration)
             private val more: ImageButton = v.findViewById(R.id.btnMore)
-
             fun bind(song: Song) {
                 title.text = song.title
                 artist.text = song.artist

@@ -75,13 +75,12 @@ class MainActivity : AppCompatActivity() {
         miniPlayer = findViewById(R.id.miniPlayer)
         miniTitle = findViewById(R.id.miniTitle)
         miniPlayPause = findViewById(R.id.miniPlayPause)
-        val miniNext = findViewById<ImageButton>(R.id.miniNext)
+        findViewById<ImageButton>(R.id.miniNext).setOnClickListener { PlayerController.next() }
 
         miniPlayer.setOnClickListener {
             startActivity(Intent(this, NowPlayingActivity::class.java))
         }
         miniPlayPause.setOnClickListener { PlayerController.togglePlayPause(); updateMini() }
-        miniNext.setOnClickListener { PlayerController.next() }
 
         requestPerms()
         PlayerController.connect(this) {
@@ -119,13 +118,23 @@ class MainActivity : AppCompatActivity() {
                 if (allSongs.isNotEmpty()) {
                     playSongList(sortedSongs(), 0)
                     PlayerController.setShuffle(true)
-                    prefs.shuffle = true
-                    Toast.makeText(this, "Shuffle on", Toast.LENGTH_SHORT).show()
+                    prefs.setShuffle(true)
                 }
                 return true
             }
             R.id.action_sort -> {
-                showSortDialog()
+                AlertDialog.Builder(this)
+                    .setTitle(R.string.sort)
+                    .setItems(arrayOf(getString(R.string.sort_title), getString(R.string.sort_artist), getString(R.string.sort_duration))) { _, which ->
+                        sortMode = when (which) {
+                            1 -> SortMode.ARTIST
+                            2 -> SortMode.DURATION
+                            else -> SortMode.TITLE
+                        }
+                        supportFragmentManager.fragments.forEach {
+                            if (it is LibraryFragment) it.refresh(sortedSongs())
+                        }
+                    }.show()
                 return true
             }
             R.id.action_equalizer -> {
@@ -133,70 +142,37 @@ class MainActivity : AppCompatActivity() {
                 return true
             }
             R.id.action_sleep -> {
-                showSleepTimerDialog()
+                val options = arrayOf("Off", "15 min", "30 min", "45 min", "60 min", "90 min")
+                val minutes = intArrayOf(0, 15, 30, 45, 60, 90)
+                AlertDialog.Builder(this)
+                    .setTitle(R.string.sleep_timer)
+                    .setItems(options) { _, which ->
+                        sleepTimer?.cancel()
+                        val min = minutes[which]
+                        if (min == 0) {
+                            Toast.makeText(this, "Sleep timer off", Toast.LENGTH_SHORT).show()
+                            return@setItems
+                        }
+                        sleepTimer = object : CountDownTimer(min * 60_000L, 30_000L) {
+                            override fun onTick(m: Long) {}
+                            override fun onFinish() {
+                                PlayerController.controller?.pause()
+                                PlayerController.saveState(this@MainActivity)
+                                Toast.makeText(this@MainActivity, "Sleep timer — paused", Toast.LENGTH_LONG).show()
+                            }
+                        }.start()
+                        Toast.makeText(this, "Sleep in $min min", Toast.LENGTH_SHORT).show()
+                    }.show()
                 return true
             }
         }
         return super.onOptionsItemSelected(item)
     }
 
-    private fun showSortDialog() {
-        val options = arrayOf(
-            getString(R.string.sort_title),
-            getString(R.string.sort_artist),
-            getString(R.string.sort_duration)
-        )
-        AlertDialog.Builder(this)
-            .setTitle(R.string.sort)
-            .setItems(options) { _, which ->
-                sortMode = when (which) {
-                    1 -> SortMode.ARTIST
-                    2 -> SortMode.DURATION
-                    else -> SortMode.TITLE
-                }
-                refreshLibraryFragment()
-            }
-            .show()
-    }
-
-    private fun showSleepTimerDialog() {
-        val options = arrayOf("Off", "15 min", "30 min", "45 min", "60 min", "90 min")
-        val minutes = intArrayOf(0, 15, 30, 45, 60, 90)
-        AlertDialog.Builder(this)
-            .setTitle(R.string.sleep_timer)
-            .setItems(options) { _, which ->
-                sleepTimer?.cancel()
-                sleepTimer = null
-                val min = minutes[which]
-                if (min == 0) {
-                    Toast.makeText(this, "Sleep timer off", Toast.LENGTH_SHORT).show()
-                    return@setItems
-                }
-                sleepTimer = object : CountDownTimer(min * 60_000L, 30_000L) {
-                    override fun onTick(millisUntilFinished: Long) {}
-                    override fun onFinish() {
-                        PlayerController.controller?.pause()
-                        PlayerController.saveState(this@MainActivity)
-                        Toast.makeText(this@MainActivity, "Sleep timer — paused", Toast.LENGTH_LONG).show()
-                    }
-                }.start()
-                Toast.makeText(this, "Sleep in $min min", Toast.LENGTH_SHORT).show()
-            }
-            .show()
-    }
-
-    fun sortedSongs(): List<Song> {
-        return when (sortMode) {
-            SortMode.TITLE -> allSongs.sortedBy { it.title.lowercase() }
-            SortMode.ARTIST -> allSongs.sortedBy { it.artist.lowercase() }
-            SortMode.DURATION -> allSongs.sortedBy { it.duration }
-        }
-    }
-
-    private fun refreshLibraryFragment() {
-        supportFragmentManager.fragments.forEach {
-            if (it is LibraryFragment) it.refresh(sortedSongs())
-        }
+    fun sortedSongs(): List<Song> = when (sortMode) {
+        SortMode.TITLE -> allSongs.sortedBy { it.title.lowercase() }
+        SortMode.ARTIST -> allSongs.sortedBy { it.artist.lowercase() }
+        SortMode.DURATION -> allSongs.sortedBy { it.duration }
     }
 
     private fun requestPerms() {
@@ -224,27 +200,22 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    /** Restore last queue/position once after library is ready */
     private fun tryRestoreLastSession() {
         if (restoredOnce) return
         restoredOnce = true
-        val ids = prefs.lastSongIds
+        val ids = prefs.getLastSongIds()
         if (ids.isEmpty() || allSongs.isEmpty()) return
-
         val queue = ids.mapNotNull { id -> allSongs.find { it.id == id } }
         if (queue.isEmpty()) return
-
-        val index = prefs.lastIndex.coerceIn(0, queue.size - 1)
-        val pos = prefs.lastPosition
-
+        val index = prefs.getLastIndex().coerceIn(0, queue.size - 1)
+        val pos = prefs.getLastPosition()
         PlayerController.connect(this) {
             val c = PlayerController.controller ?: return@connect
-            // Only restore if nothing is currently loaded
             if (c.mediaItemCount == 0) {
                 PlayerController.playSongs(queue, index, pos)
-                c.pause() // prepare at position but don't auto-start loudly
-                PlayerController.setShuffle(prefs.shuffle)
-                PlayerController.setRepeat(prefs.repeatMode)
+                c.pause()
+                PlayerController.setShuffle(prefs.getShuffle())
+                PlayerController.setRepeat(prefs.getRepeatMode())
                 updateMini()
             }
         }
@@ -253,9 +224,9 @@ class MainActivity : AppCompatActivity() {
     fun playSongList(songs: List<Song>, index: Int) {
         PlayerController.connect(this) {
             PlayerController.playSongs(songs, index)
-            prefs.lastSongIds = songs.map { it.id }
-            prefs.lastIndex = index
-            prefs.lastPosition = 0
+            prefs.setLastSongIds(songs.map { it.id })
+            prefs.setLastIndex(index)
+            prefs.setLastPosition(0)
             updateMini()
         }
     }
@@ -267,8 +238,7 @@ class MainActivity : AppCompatActivity() {
             return
         }
         miniPlayer.visibility = View.VISIBLE
-        val meta = c.mediaMetadata
-        miniTitle.text = meta.title ?: ""
+        miniTitle.text = c.mediaMetadata.title ?: ""
         miniPlayPause.setImageResource(
             if (c.isPlaying) android.R.drawable.ic_media_pause
             else android.R.drawable.ic_media_play

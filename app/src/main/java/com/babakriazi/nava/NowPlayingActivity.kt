@@ -58,7 +58,6 @@ class NowPlayingActivity : AppCompatActivity() {
         findViewById<ImageButton>(R.id.btnPrev).setOnClickListener { PlayerController.previous() }
         findViewById<ImageButton>(R.id.btnNext).setOnClickListener { PlayerController.next() }
         btnPlay.setOnClickListener { PlayerController.togglePlayPause(); refresh() }
-
         findViewById<MaterialButton>(R.id.btnEq).setOnClickListener {
             startActivity(Intent(this, EqualizerActivity::class.java))
         }
@@ -66,16 +65,23 @@ class NowPlayingActivity : AppCompatActivity() {
         btnShuffle.setOnClickListener {
             val c = PlayerController.controller ?: return@setOnClickListener
             c.shuffleModeEnabled = !c.shuffleModeEnabled
-            prefs.shuffle = c.shuffleModeEnabled
+            prefs.setShuffle(c.shuffleModeEnabled)
             updateModeButtons()
-            Toast.makeText(
-                this,
-                if (c.shuffleModeEnabled) "Shuffle on" else "Shuffle off",
-                Toast.LENGTH_SHORT
-            ).show()
+            Toast.makeText(this, if (c.shuffleModeEnabled) "Shuffle on" else "Shuffle off", Toast.LENGTH_SHORT).show()
         }
 
-        btnRepeat.setOnClickListener { cycleRepeat() }
+        btnRepeat.setOnClickListener {
+            val c = PlayerController.controller ?: return@setOnClickListener
+            val next = when (c.repeatMode) {
+                Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
+                Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
+                else -> Player.REPEAT_MODE_OFF
+            }
+            c.repeatMode = next
+            prefs.setRepeatMode(next)
+            updateModeButtons()
+            Toast.makeText(this, txtRepeatMode.text, Toast.LENGTH_SHORT).show()
+        }
 
         seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
@@ -103,23 +109,9 @@ class NowPlayingActivity : AppCompatActivity() {
         }
     }
 
-    private fun cycleRepeat() {
-        val c = PlayerController.controller ?: return
-        val next = when (c.repeatMode) {
-            Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
-            Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
-            else -> Player.REPEAT_MODE_OFF
-        }
-        c.repeatMode = next
-        prefs.repeatMode = next
-        updateModeButtons()
-        Toast.makeText(this, txtRepeatMode.text, Toast.LENGTH_SHORT).show()
-    }
-
     private fun updateModeButtons() {
         val c = PlayerController.controller ?: return
         btnShuffle.alpha = if (c.shuffleModeEnabled) 1f else 0.45f
-
         when (c.repeatMode) {
             Player.REPEAT_MODE_ALL -> {
                 btnRepeat.alpha = 1f
@@ -153,12 +145,10 @@ class NowPlayingActivity : AppCompatActivity() {
 
     private fun refresh() {
         val c = PlayerController.controller ?: return
-        val meta = c.mediaMetadata
-        txtTitle.text = meta.title ?: ""
-        txtArtist.text = meta.artist ?: ""
+        txtTitle.text = c.mediaMetadata.title ?: ""
+        txtArtist.text = c.mediaMetadata.artist ?: ""
         btnPlay.setImageResource(
-            if (c.isPlaying) android.R.drawable.ic_media_pause
-            else android.R.drawable.ic_media_play
+            if (c.isPlaying) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play
         )
         val dur = c.duration.coerceAtLeast(0)
         if (dur > 0 && dur != Long.MAX_VALUE) {
@@ -172,9 +162,8 @@ class NowPlayingActivity : AppCompatActivity() {
     private fun updateProgress() {
         if (userSeeking) return
         val c = PlayerController.controller ?: return
-        val pos = c.currentPosition
-        seekBar.progress = pos.toInt().coerceIn(0, seekBar.max)
-        txtPosition.text = format(pos)
+        seekBar.progress = c.currentPosition.toInt().coerceIn(0, seekBar.max)
+        txtPosition.text = format(c.currentPosition)
     }
 
     private fun format(ms: Long): String {
