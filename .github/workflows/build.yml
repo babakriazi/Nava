@@ -23,20 +23,29 @@ jobs:
 
       - run: yes | sdkmanager --licenses || true
 
-      - name: Decode optional PNG icons
+      - name: Decode launcher icons
         run: |
           set -e
           for dens in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
             f="icons/mipmap-${dens}_ic_launcher.b64"
-            if [ -f "$f" ]; then
+            if [ -f "$f" ] && [ -s "$f" ]; then
               mkdir -p "app/src/main/res/mipmap-${dens}"
-              base64 -d "$f" > "app/src/main/res/mipmap-${dens}/ic_launcher.png" || true
-              if [ -f "app/src/main/res/mipmap-${dens}/ic_launcher.png" ]; then
+              if base64 -d "$f" > "app/src/main/res/mipmap-${dens}/ic_launcher.png" 2>/dev/null; then
                 cp "app/src/main/res/mipmap-${dens}/ic_launcher.png" "app/src/main/res/mipmap-${dens}/ic_launcher_round.png"
+                echo "decoded $dens"
               fi
             fi
           done
-          echo "Icon decode done"
+          # Prefer any successfully decoded xxxhdpi as adaptive foreground
+          if [ -f app/src/main/res/mipmap-xxxhdpi/ic_launcher.png ]; then
+            cp app/src/main/res/mipmap-xxxhdpi/ic_launcher.png app/src/main/res/drawable/ic_launcher_foreground.png
+            rm -f app/src/main/res/drawable/ic_launcher_foreground.xml
+          elif [ -f app/src/main/res/mipmap-mdpi/ic_launcher.png ]; then
+            cp app/src/main/res/mipmap-mdpi/ic_launcher.png app/src/main/res/drawable/ic_launcher_foreground.png
+            rm -f app/src/main/res/drawable/ic_launcher_foreground.xml
+          fi
+          ls -la app/src/main/res/mipmap-* 2>/dev/null || true
+          ls -la app/src/main/res/drawable/ic_launcher* 2>/dev/null || true
 
       - uses: gradle/actions/setup-gradle@v4
 
