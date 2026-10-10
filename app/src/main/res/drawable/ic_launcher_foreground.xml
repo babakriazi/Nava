@@ -6,6 +6,25 @@
         </shape>
     </item>
     <item
-        android:drawable="@drawable/ic_nava_mark"
-        android:gravity="center" />
+        android:top="18dp"
+        android:bottom="18dp"
+        android:left="18dp"
+        android:right="18dp">
+        <vector
+            android:width="72dp"
+            android:height="72dp"
+            android:viewportWidth="100"
+            android:viewportHeight="100">
+            <!-- Gold نوا calligraphy approximation -->
+            <path
+                android:fillColor="#C9A227"
+                android:pathData="M18,62 C22,40 32,28 48,26 C40,36 38,48 40,60 C42,72 54,78 64,70 C72,64 74,52 68,42 C62,32 50,28 46,22 C58,20 74,28 80,42 C86,56 84,74 70,84 C56,94 32,90 22,76 C16,66 16,70 18,62 Z" />
+            <path
+                android:fillColor="#C9A227"
+                android:pathData="M66,18 L72,12 L78,20 L72,26 Z" />
+            <path
+                android:fillColor="#C9A227"
+                android:pathData="M74,28 C80,38 82,54 80,68 C78,80 70,86 66,84 C74,70 76,48 74,28 Z" />
+        </vector>
+    </item>
 </layer-list>
