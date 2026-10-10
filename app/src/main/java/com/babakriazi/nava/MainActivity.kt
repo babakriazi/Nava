@@ -26,6 +26,7 @@ import com.babakriazi.nava.data.Song
 import com.babakriazi.nava.playback.EqEngine
 import com.babakriazi.nava.playback.MusicService
 import com.babakriazi.nava.playback.PlayerController
+import com.babakriazi.nava.visualizer.VizMode
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
@@ -42,6 +43,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var miniPlayPause: ImageButton
     private var sleepTimer: CountDownTimer? = null
     private var restoredOnce = false
+    private var pendingVizLaunch: (() -> Unit)? = null
 
     enum class SortMode { TITLE, ARTIST, DURATION }
 
@@ -54,6 +56,17 @@ class MainActivity : AppCompatActivity() {
         } else {
             Toast.makeText(this, getString(R.string.permission_required), Toast.LENGTH_LONG).show()
         }
+    }
+
+    private val audioPermLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            pendingVizLaunch?.invoke()
+        } else {
+            Toast.makeText(this, "Microphone permission needed for visualizer", Toast.LENGTH_LONG).show()
+        }
+        pendingVizLaunch = null
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -84,7 +97,10 @@ class MainActivity : AppCompatActivity() {
         }
         miniPlayPause.setOnClickListener { PlayerController.togglePlayPause(); updateMini() }
 
-        // Show last track immediately if we have a saved title
+        findViewById<ImageButton>(R.id.miniViz).setOnClickListener {
+            showVisualizerPicker()
+        }
+
         val lastTitle = prefs.getLastTitle()
         if (lastTitle.isNotBlank()) {
             miniPlayer.visibility = View.VISIBLE
@@ -111,6 +127,38 @@ class MainActivity : AppCompatActivity() {
                 }
             })
             updateMini()
+        }
+    }
+
+    private fun showVisualizerPicker() {
+        val labels = VizMode.entries.map { it.label }.toMutableList()
+        labels.add("Random (auto every 30s)")
+        AlertDialog.Builder(this)
+            .setTitle("Light Show")
+            .setItems(labels.toTypedArray()) { _, which ->
+                openVisualizer(which)
+            }
+            .show()
+    }
+
+    private fun openVisualizer(which: Int) {
+        val launch = {
+            val intent = Intent(this, VisualizerActivity::class.java)
+            if (which >= VizMode.entries.size) {
+                intent.putExtra("random", true)
+            } else {
+                intent.putExtra("mode", which)
+                intent.putExtra("random", false)
+            }
+            startActivity(intent)
+        }
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
+            != PackageManager.PERMISSION_GRANTED
+        ) {
+            pendingVizLaunch = launch
+            audioPermLauncher.launch(Manifest.permission.RECORD_AUDIO)
+        } else {
+            launch()
         }
     }
 
@@ -283,7 +331,6 @@ class MainActivity : AppCompatActivity() {
                 return
             }
         }
-        // Fallback: show last known track even if player not ready yet
         val last = prefs.getLastTitle()
         if (last.isNotBlank()) {
             miniPlayer.visibility = View.VISIBLE

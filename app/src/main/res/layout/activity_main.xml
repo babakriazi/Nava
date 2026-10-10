@@ -60,7 +60,7 @@
             android:layout_height="match_parent"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:paddingHorizontal="14dp">
+            android:paddingHorizontal="10dp">
 
             <View
                 android:layout_width="4dp"
@@ -72,7 +72,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:layout_marginStart="12dp"
+                android:layout_marginStart="10dp"
                 android:textColor="@color/text_primary"
                 android:textSize="14sp"
                 android:textStyle="bold"
@@ -80,9 +80,18 @@
                 android:ellipsize="end" />
 
             <ImageButton
+                android:id="@+id/miniViz"
+                android:layout_width="42dp"
+                android:layout_height="42dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@android:drawable/ic_menu_gallery"
+                android:contentDescription="Visualizer"
+                app:tint="@color/teal" />
+
+            <ImageButton
                 android:id="@+id/miniPlayPause"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
+                android:layout_width="46dp"
+                android:layout_height="46dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@android:drawable/ic_media_play"
                 android:contentDescription="Play"
@@ -90,8 +99,8 @@
 
             <ImageButton
                 android:id="@+id/miniNext"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
+                android:layout_width="42dp"
+                android:layout_height="42dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@android:drawable/ic_media_next"
                 android:contentDescription="Next"
