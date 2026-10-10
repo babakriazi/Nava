@@ -5,10 +5,7 @@
             <solid android:color="#070B0F" />
         </shape>
     </item>
-    <!-- Fallback vector until PNG decoded in CI: stylized gold Nava mark -->
     <item
         android:drawable="@drawable/ic_nava_mark"
-        android:gravity="center"
-        android:width="72dp"
-        android:height="72dp" />
+        android:gravity="center" />
 </layer-list>

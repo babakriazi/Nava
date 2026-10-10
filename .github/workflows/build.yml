@@ -10,48 +10,40 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
+
       - uses: android-actions/setup-android@v3
         with:
           accept-android-sdk-licenses: true
           packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
+
       - run: yes | sdkmanager --licenses || true
-      - name: Decode launcher icons from base64
+
+      - name: Decode optional PNG icons
         run: |
           set -e
-          if [ -f icons/mipmap-mdpi_ic_launcher.b64 ]; then
-            for dens in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
-              f="icons/mipmap-${dens}_ic_launcher.b64"
-              if [ -f "$f" ]; then
-                mkdir -p "app/src/main/res/mipmap-${dens}"
-                base64 -d "$f" > "app/src/main/res/mipmap-${dens}/ic_launcher.png"
+          for dens in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
+            f="icons/mipmap-${dens}_ic_launcher.b64"
+            if [ -f "$f" ]; then
+              mkdir -p "app/src/main/res/mipmap-${dens}"
+              base64 -d "$f" > "app/src/main/res/mipmap-${dens}/ic_launcher.png" || true
+              if [ -f "app/src/main/res/mipmap-${dens}/ic_launcher.png" ]; then
                 cp "app/src/main/res/mipmap-${dens}/ic_launcher.png" "app/src/main/res/mipmap-${dens}/ic_launcher_round.png"
               fi
-            done
-          fi
-          if [ -f icons/ic_launcher_foreground.b64 ]; then
-            base64 -d icons/ic_launcher_foreground.b64 > app/src/main/res/drawable/ic_launcher_foreground.png
-            # Prefer PNG adaptive foreground over XML when PNG exists
-            cat > app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml <<'EOF'
-<?xml version="1.0" encoding="utf-8"?>
-<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-    <background android:drawable="@color/ic_launcher_background"/>
-    <foreground android:drawable="@drawable/ic_launcher_foreground"/>
-</adaptive-icon>
-EOF
-            cp app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
-            # Remove XML foreground that conflicts with PNG same name
-            rm -f app/src/main/res/drawable/ic_launcher_foreground.xml
-          fi
-          echo "Icons ready"
-          find app/src/main/res -name 'ic_launcher*' | head -20
+            fi
+          done
+          echo "Icon decode done"
+
       - uses: gradle/actions/setup-gradle@v4
+
       - run: |
           gradle wrapper --gradle-version 8.9
           chmod +x ./gradlew
+
       - name: Build
         run: |
           set +e
@@ -59,12 +51,14 @@ EOF
           STATUS=${PIPESTATUS[0]}
           grep -E "^e: |error:|Unresolved|FAILED" build.log || true
           exit $STATUS
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: build-log
           path: build.log
           retention-days: 5
+
       - uses: actions/upload-artifact@v4
         if: success()
         with:
