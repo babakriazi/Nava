@@ -126,12 +126,13 @@ class EqualizerActivity : AppCompatActivity() {
         })
         root.addView(enableRow)
 
-        // Gain (0–2000 millibels ≈ 0 to +20 dB)
+        // Gain via ExoPlayer.volume — works beyond system 100%
         val gainLabel = sectionLabel("Gain  +${prefs.getGain() / 100} dB")
         root.addView(gainLabel)
         root.addView(makeSeek(0, 2000, prefs.getGain()) { progress ->
             prefs.setGain(progress)
             gainLabel.text = "Gain  +${progress / 100} dB"
+            EqEngine.applyPlayerGain(progress)
             EqEngine.refreshFromPrefs(this)
         })
 

@@ -1,5 +1,6 @@
 package com.babakriazi.nava.playback
 
+import android.app.PendingIntent
 import android.content.Intent
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
@@ -7,6 +8,7 @@ import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
+import com.babakriazi.nava.NowPlayingActivity
 
 class MusicService : MediaSessionService() {
 
@@ -58,12 +60,22 @@ class MusicService : MediaSessionService() {
             }
 
             override fun onMediaItemTransition(mediaItem: androidx.media3.common.MediaItem?, reason: Int) {
-                // New track can change audio path — re-apply EQ
                 syncSession(player)
             }
         })
 
-        mediaSession = MediaSession.Builder(this, player).build()
+        // Tap on notification body opens Now Playing
+        val openIntent = Intent(this, NowPlayingActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        val pending = PendingIntent.getActivity(
+            this, 0, openIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        mediaSession = MediaSession.Builder(this, player)
+            .setSessionActivity(pending)
+            .build()
     }
 
     private fun syncSession(player: ExoPlayer) {

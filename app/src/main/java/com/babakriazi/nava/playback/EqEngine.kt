@@ -3,20 +3,19 @@ package com.babakriazi.nava.playback
 import android.content.Context
 import android.media.audiofx.BassBoost
 import android.media.audiofx.Equalizer
-import android.media.audiofx.LoudnessEnhancer
 import android.media.audiofx.Virtualizer
 import com.babakriazi.nava.data.Prefs
+import kotlin.math.pow
 
 /**
- * Holds audio effects tied to the player session.
- * Re-applies saved prefs whenever the audio session changes (new song / new player).
+ * EQ + Bass + Virtualizer on audio session.
+ * Gain is applied via ExoPlayer.volume (reliable on all devices including Samsung).
  */
 object EqEngine {
 
     private var equalizer: Equalizer? = null
     private var bassBoost: BassBoost? = null
     private var virtualizer: Virtualizer? = null
-    private var loudness: LoudnessEnhancer? = null
     private var attachedSession: Int = -1
 
     @Synchronized
@@ -29,28 +28,33 @@ object EqEngine {
             return
         }
 
-        release()
+        releaseEffectsOnly()
         attachedSession = sessionId
 
         try {
             equalizer = Equalizer(0, sessionId)
             bassBoost = BassBoost(0, sessionId)
             virtualizer = Virtualizer(0, sessionId)
-            try {
-                loudness = LoudnessEnhancer(sessionId)
-            } catch (_: Exception) {
-                loudness = null
-            }
             writeLevels(prefs)
         } catch (_: Exception) {
-            release()
+            releaseEffectsOnly()
         }
     }
 
     @Synchronized
     fun refreshFromPrefs(context: Context) {
-        if (attachedSession <= 0) return
         writeLevels(Prefs(context.applicationContext))
+    }
+
+    /** Apply digital gain on ExoPlayer. gainMb is millibels 0..2000 → 0..+20 dB */
+    fun applyPlayerGain(gainMb: Int) {
+        val player = MusicService.playerInstance ?: return
+        val db = gainMb / 100.0
+        // volume linear = 10^(dB/20); allow > 1.0 for boost past system 100%
+        val linear = 10.0.pow(db / 20.0).toFloat().coerceIn(0.05f, 10f)
+        try {
+            player.volume = linear
+        } catch (_: Exception) {}
     }
 
     private fun writeLevels(prefs: Prefs) {
@@ -62,16 +66,8 @@ object EqEngine {
             bassBoost?.setStrength(prefs.getBass().toShort())
             virtualizer?.setStrength(prefs.getVirt().toShort())
 
-            val gainMb = prefs.getGain()
-            try {
-                loudness?.enabled = enabled && gainMb > 0
-                if (gainMb > 0) {
-                    loudness?.setTargetGain(gainMb)
-                } else {
-                    loudness?.setTargetGain(0)
-                    loudness?.enabled = false
-                }
-            } catch (_: Exception) {}
+            // Gain always applied (independent of EQ toggle) so user hears boost
+            applyPlayerGain(prefs.getGain())
 
             val eq = equalizer ?: return
             if (prefs.getBandsSaved()) {
@@ -85,16 +81,21 @@ object EqEngine {
         } catch (_: Exception) {}
     }
 
-    @Synchronized
-    fun release() {
+    private fun releaseEffectsOnly() {
         try { equalizer?.release() } catch (_: Exception) {}
         try { bassBoost?.release() } catch (_: Exception) {}
         try { virtualizer?.release() } catch (_: Exception) {}
-        try { loudness?.release() } catch (_: Exception) {}
         equalizer = null
         bassBoost = null
         virtualizer = null
-        loudness = null
         attachedSession = -1
+    }
+
+    @Synchronized
+    fun release() {
+        releaseEffectsOnly()
+        try {
+            MusicService.playerInstance?.volume = 1f
+        } catch (_: Exception) {}
     }
 }
