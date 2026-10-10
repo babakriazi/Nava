@@ -40,7 +40,9 @@ class LibraryFragment : Fragment() {
         adapter = SongAdapter(
             onClick = { song, list ->
                 val idx = list.indexOf(song)
-                (activity as? MainActivity)?.playSongList(list, idx.coerceAtLeast(0))
+                val main = activity as? MainActivity
+                main?.prefs?.setCurrentPlaylistName("")
+                main?.playSongList(list, idx.coerceAtLeast(0))
             },
             onMore = { song -> showSongMenu(song) }
         )
@@ -91,6 +93,7 @@ class LibraryFragment : Fragment() {
                     2 -> setAsRingtone(song)
                     3 -> {
                         val main = activity as? MainActivity ?: return@setItems
+                        main.prefs.setCurrentPlaylistName("")
                         val list = main.sortedSongs()
                         val idx = list.indexOfFirst { it.id == song.id }.coerceAtLeast(0)
                         main.playSongList(list, idx)
@@ -133,20 +136,13 @@ class LibraryFragment : Fragment() {
                 Toast.makeText(requireContext(), R.string.renamed, Toast.LENGTH_SHORT).show()
                 (activity as? MainActivity)?.loadLibrary()
             } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                // Need user consent to write
                 try {
                     val request = MediaStore.createWriteRequest(
                         requireContext().contentResolver,
                         listOf(uri)
                     )
-                    // Store pending rename in arguments via activity result is complex;
-                    // ask user to grant then try again
                     startIntentSenderForResult(request.intentSender, 1002, null, 0, 0, 0, null)
-                    Toast.makeText(
-                        requireContext(),
-                        "Allow edit, then rename again",
-                        Toast.LENGTH_LONG
-                    ).show()
+                    Toast.makeText(requireContext(), "Allow edit, then rename again", Toast.LENGTH_LONG).show()
                 } catch (e: Exception) {
                     Toast.makeText(requireContext(), "Rename failed: ${e.message}", Toast.LENGTH_LONG).show()
                 }
@@ -162,11 +158,7 @@ class LibraryFragment : Fragment() {
                         listOf(uri)
                     )
                     startIntentSenderForResult(request.intentSender, 1002, null, 0, 0, 0, null)
-                    Toast.makeText(
-                        requireContext(),
-                        "Allow edit, then rename again",
-                        Toast.LENGTH_LONG
-                    ).show()
+                    Toast.makeText(requireContext(), "Allow edit, then rename again", Toast.LENGTH_LONG).show()
                 } catch (ex: Exception) {
                     Toast.makeText(requireContext(), "Rename failed: ${ex.message}", Toast.LENGTH_LONG).show()
                 }
