@@ -77,13 +77,22 @@ class MainActivity : AppCompatActivity() {
         miniPlayer = findViewById(R.id.miniPlayer)
         miniTitle = findViewById(R.id.miniTitle)
         miniPlayPause = findViewById(R.id.miniPlayPause)
-        miniPlayer.visibility = View.GONE
         findViewById<ImageButton>(R.id.miniNext).setOnClickListener { PlayerController.next() }
 
         miniPlayer.setOnClickListener {
             startActivity(Intent(this, NowPlayingActivity::class.java))
         }
         miniPlayPause.setOnClickListener { PlayerController.togglePlayPause(); updateMini() }
+
+        // Show last track immediately if we have a saved title
+        val lastTitle = prefs.getLastTitle()
+        if (lastTitle.isNotBlank()) {
+            miniPlayer.visibility = View.VISIBLE
+            miniTitle.text = lastTitle
+            miniPlayPause.setImageResource(android.R.drawable.ic_media_play)
+        } else {
+            miniPlayer.visibility = View.GONE
+        }
 
         requestPerms()
         PlayerController.connect(this) {
@@ -220,22 +229,26 @@ class MainActivity : AppCompatActivity() {
         if (restoredOnce) return
         restoredOnce = true
         val ids = prefs.getLastSongIds()
-        if (ids.isEmpty() || allSongs.isEmpty()) return
+        if (ids.isEmpty() || allSongs.isEmpty()) {
+            updateMini()
+            return
+        }
         val queue = ids.mapNotNull { id -> allSongs.find { it.id == id } }
-        if (queue.isEmpty()) return
+        if (queue.isEmpty()) {
+            updateMini()
+            return
+        }
         val index = prefs.getLastIndex().coerceIn(0, queue.size - 1)
         val pos = prefs.getLastPosition()
         PlayerController.connect(this) {
             val c = PlayerController.controller ?: return@connect
             if (c.mediaItemCount == 0) {
-                // Prepare queue silently — do NOT auto-play; mini stays hidden until user plays
                 PlayerController.playSongs(queue, index, pos)
                 c.pause()
                 PlayerController.setShuffle(prefs.getShuffle())
                 PlayerController.setRepeat(prefs.getRepeatMode())
-                // Keep mini hidden when only restored/paused with no active user play this session
-                updateMini(forceHideIfPausedRestore = true)
             }
+            updateMini()
         }
     }
 
@@ -245,35 +258,40 @@ class MainActivity : AppCompatActivity() {
             prefs.setLastSongIds(songs.map { it.id })
             prefs.setLastIndex(index)
             prefs.setLastPosition(0)
+            if (index in songs.indices) {
+                prefs.setLastTitle(songs[index].title)
+            }
             val sid = MusicService.audioSessionId
             if (sid != 0) EqEngine.apply(this, sid)
             updateMini()
         }
     }
 
-    private fun updateMini(forceHideIfPausedRestore: Boolean = false) {
+    private fun updateMini() {
         val c = PlayerController.controller
-        if (c == null || c.mediaItemCount == 0) {
-            miniPlayer.visibility = View.GONE
-            return
+        if (c != null && c.mediaItemCount > 0) {
+            val title = c.mediaMetadata.title?.toString()?.trim().orEmpty()
+            val display = if (title.isNotBlank()) title else prefs.getLastTitle()
+            if (display.isNotBlank()) {
+                prefs.setLastTitle(display)
+                miniPlayer.visibility = View.VISIBLE
+                miniTitle.text = display
+                miniPlayPause.setImageResource(
+                    if (c.isPlaying) android.R.drawable.ic_media_pause
+                    else android.R.drawable.ic_media_play
+                )
+                return
+            }
         }
-        val title = c.mediaMetadata.title?.toString()?.trim().orEmpty()
-        // Hide empty-looking bar: no title and not playing
-        if (title.isEmpty() && !c.isPlaying) {
+        // Fallback: show last known track even if player not ready yet
+        val last = prefs.getLastTitle()
+        if (last.isNotBlank()) {
+            miniPlayer.visibility = View.VISIBLE
+            miniTitle.text = last
+            miniPlayPause.setImageResource(android.R.drawable.ic_media_play)
+        } else {
             miniPlayer.visibility = View.GONE
-            return
         }
-        // After cold restore, keep hidden until user actually starts playback once
-        if (forceHideIfPausedRestore && !c.isPlaying) {
-            miniPlayer.visibility = View.GONE
-            return
-        }
-        miniPlayer.visibility = View.VISIBLE
-        miniTitle.text = title
-        miniPlayPause.setImageResource(
-            if (c.isPlaying) android.R.drawable.ic_media_pause
-            else android.R.drawable.ic_media_play
-        )
     }
 
     override fun onDestroy() {

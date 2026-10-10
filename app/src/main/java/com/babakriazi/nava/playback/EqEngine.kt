@@ -3,6 +3,7 @@ package com.babakriazi.nava.playback
 import android.content.Context
 import android.media.audiofx.BassBoost
 import android.media.audiofx.Equalizer
+import android.media.audiofx.LoudnessEnhancer
 import android.media.audiofx.Virtualizer
 import com.babakriazi.nava.data.Prefs
 
@@ -15,6 +16,7 @@ object EqEngine {
     private var equalizer: Equalizer? = null
     private var bassBoost: BassBoost? = null
     private var virtualizer: Virtualizer? = null
+    private var loudness: LoudnessEnhancer? = null
     private var attachedSession: Int = -1
 
     @Synchronized
@@ -22,7 +24,6 @@ object EqEngine {
         if (sessionId == 0) return
         val prefs = Prefs(context.applicationContext)
 
-        // Same session — still refresh levels from prefs (in case UI changed them)
         if (sessionId == attachedSession && equalizer != null) {
             writeLevels(prefs)
             return
@@ -35,6 +36,11 @@ object EqEngine {
             equalizer = Equalizer(0, sessionId)
             bassBoost = BassBoost(0, sessionId)
             virtualizer = Virtualizer(0, sessionId)
+            try {
+                loudness = LoudnessEnhancer(sessionId)
+            } catch (_: Exception) {
+                loudness = null
+            }
             writeLevels(prefs)
         } catch (_: Exception) {
             release()
@@ -55,6 +61,18 @@ object EqEngine {
             virtualizer?.enabled = enabled
             bassBoost?.setStrength(prefs.getBass().toShort())
             virtualizer?.setStrength(prefs.getVirt().toShort())
+
+            val gainMb = prefs.getGain()
+            try {
+                loudness?.enabled = enabled && gainMb > 0
+                if (gainMb > 0) {
+                    loudness?.setTargetGain(gainMb)
+                } else {
+                    loudness?.setTargetGain(0)
+                    loudness?.enabled = false
+                }
+            } catch (_: Exception) {}
+
             val eq = equalizer ?: return
             if (prefs.getBandsSaved()) {
                 val bands = eq.numberOfBands.toInt()
@@ -72,9 +90,11 @@ object EqEngine {
         try { equalizer?.release() } catch (_: Exception) {}
         try { bassBoost?.release() } catch (_: Exception) {}
         try { virtualizer?.release() } catch (_: Exception) {}
+        try { loudness?.release() } catch (_: Exception) {}
         equalizer = null
         bassBoost = null
         virtualizer = null
+        loudness = null
         attachedSession = -1
     }
 }

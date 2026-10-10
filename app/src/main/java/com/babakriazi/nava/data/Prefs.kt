@@ -22,6 +22,9 @@ class Prefs(context: Context) {
     fun getLastPosition(): Long = p.getLong("last_position", 0L)
     fun setLastPosition(v: Long) { p.edit().putLong("last_position", v).apply() }
 
+    fun getLastTitle(): String = p.getString("last_title", "") ?: ""
+    fun setLastTitle(v: String) { p.edit().putString("last_title", v).apply() }
+
     fun getShuffle(): Boolean = p.getBoolean("shuffle", false)
     fun setShuffle(v: Boolean) { p.edit().putBoolean("shuffle", v).apply() }
 
@@ -36,6 +39,10 @@ class Prefs(context: Context) {
 
     fun getVirt(): Int = p.getInt("virt", 0)
     fun setVirt(v: Int) { p.edit().putInt("virt", v).apply() }
+
+    /** Gain in millibels (0 = no boost, 1000 ≈ +10 dB). */
+    fun getGain(): Int = p.getInt("gain_mb", 0)
+    fun setGain(v: Int) { p.edit().putInt("gain_mb", v.coerceIn(0, 2000)).apply() }
 
     fun saveBandLevel(band: Int, level: Int) {
         p.edit().putInt("band_$band", level).apply()
