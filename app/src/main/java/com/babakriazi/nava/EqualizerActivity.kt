@@ -12,6 +12,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SwitchCompat
 import com.babakriazi.nava.data.Prefs
+import com.babakriazi.nava.playback.EqEngine
 import com.babakriazi.nava.playback.MusicService
 
 class EqualizerActivity : AppCompatActivity() {
@@ -56,6 +57,9 @@ class EqualizerActivity : AppCompatActivity() {
             setContentView(root)
             return
         }
+
+        // Ensure engine is attached with saved levels first
+        EqEngine.apply(this, sessionId)
 
         try {
             equalizer = Equalizer(0, sessionId)
@@ -118,6 +122,7 @@ class EqualizerActivity : AppCompatActivity() {
                 bassBoost?.enabled = checked
                 virtualizer?.enabled = checked
                 prefs.setEqEnabled(checked)
+                EqEngine.refreshFromPrefs(this@EqualizerActivity)
             }
         })
         root.addView(enableRow)
@@ -127,6 +132,7 @@ class EqualizerActivity : AppCompatActivity() {
             try {
                 bassBoost?.setStrength(progress.toShort())
                 prefs.setBass(progress)
+                EqEngine.refreshFromPrefs(this)
             } catch (_: Exception) {}
         })
 
@@ -135,6 +141,7 @@ class EqualizerActivity : AppCompatActivity() {
             try {
                 virtualizer?.setStrength(progress.toShort())
                 prefs.setVirt(progress)
+                EqEngine.refreshFromPrefs(this)
             } catch (_: Exception) {}
         })
 
@@ -151,11 +158,17 @@ class EqualizerActivity : AppCompatActivity() {
                     eq.setBandLevel(band, level.toShort())
                     prefs.saveBandLevel(i, level)
                     prefs.setBandsSaved(true)
+                    EqEngine.refreshFromPrefs(this)
                 } catch (_: Exception) {}
             })
         }
 
         setContentView(root)
+    }
+
+    override fun onPause() {
+        EqEngine.refreshFromPrefs(this)
+        super.onPause()
     }
 
     private fun sectionLabel(text: String) = TextView(this).apply {

@@ -46,19 +46,32 @@ class MusicService : MediaSessionService() {
             .build()
 
         playerInstance = player
-        audioSessionId = readAudioSessionId(player)
+        syncSession(player)
 
         player.addListener(object : Player.Listener {
             override fun onPlaybackStateChanged(playbackState: Int) {
-                audioSessionId = readAudioSessionId(player)
+                syncSession(player)
             }
 
             override fun onIsPlayingChanged(isPlaying: Boolean) {
-                audioSessionId = readAudioSessionId(player)
+                syncSession(player)
+            }
+
+            override fun onMediaItemTransition(mediaItem: androidx.media3.common.MediaItem?, reason: Int) {
+                // New track can change audio path — re-apply EQ
+                syncSession(player)
             }
         })
 
         mediaSession = MediaSession.Builder(this, player).build()
+    }
+
+    private fun syncSession(player: ExoPlayer) {
+        val id = readAudioSessionId(player)
+        audioSessionId = id
+        if (id != 0) {
+            EqEngine.apply(applicationContext, id)
+        }
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? {
@@ -73,6 +86,7 @@ class MusicService : MediaSessionService() {
     }
 
     override fun onDestroy() {
+        EqEngine.release()
         mediaSession?.run {
             player.release()
             release()
