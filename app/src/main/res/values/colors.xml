@@ -3,8 +3,9 @@
     <color name="gold">#C9A227</color>
     <color name="gold_light">#E8D48B</color>
     <color name="teal">#4ECDC4</color>
-    <color name="bg_dark">#0F1419</color>
+    <color name="bg_dark">#070B0F</color>
     <color name="bg_card">#1A222D</color>
     <color name="text_primary">#E8E4D9</color>
     <color name="text_secondary">#9A9588</color>
+    <color name="ic_launcher_background">#070B0F</color>
 </resources>

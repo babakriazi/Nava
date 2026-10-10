@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Simplified gold calligraphy-inspired mark for نوا -->
+    <path
+        android:fillColor="#C9A227"
+        android:pathData="M30,72 C34,58 42,48 54,46 C48,52 46,60 48,70 C50,78 56,82 62,78 C68,74 70,64 66,56 C62,48 52,44 48,38 C56,36 68,40 74,50 C80,60 78,74 68,82 C58,90 42,88 34,78 C28,70 28,78 30,72 Z" />
+    <path
+        android:fillColor="#C9A227"
+        android:pathData="M72,32 L76,28 L80,34 L76,38 Z" />
+    <path
+        android:fillColor="#C9A227"
+        android:pathData="M78,42 C82,48 84,58 82,68 C80,78 74,84 70,82 C76,72 78,58 78,42 Z" />
+</vector>
