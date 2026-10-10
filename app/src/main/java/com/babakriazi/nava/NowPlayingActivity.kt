@@ -11,6 +11,8 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.media3.common.Player
 import com.babakriazi.nava.data.Prefs
+import com.babakriazi.nava.playback.EqEngine
+import com.babakriazi.nava.playback.MusicService
 import com.babakriazi.nava.playback.PlayerController
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -26,6 +28,7 @@ class NowPlayingActivity : AppCompatActivity() {
     private lateinit var btnPlay: FloatingActionButton
     private lateinit var btnShuffle: ImageButton
     private lateinit var btnRepeat: ImageButton
+    private lateinit var toolbar: com.google.android.material.appbar.MaterialToolbar
     private lateinit var prefs: Prefs
     private val handler = Handler(Looper.getMainLooper())
     private var userSeeking = false
@@ -42,8 +45,17 @@ class NowPlayingActivity : AppCompatActivity() {
         setContentView(R.layout.activity_now_playing)
         prefs = Prefs(this)
 
-        findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.toolbar)
-            .setNavigationOnClickListener { finish() }
+        toolbar = findViewById(R.id.toolbar)
+        toolbar.setNavigationOnClickListener { finish() }
+
+        val plName = intent.getStringExtra("playlist_name")
+            ?: prefs.getCurrentPlaylistName()
+        if (plName.isNotBlank()) {
+            toolbar.subtitle = plName
+            prefs.setCurrentPlaylistName(plName)
+        } else {
+            toolbar.subtitle = null
+        }
 
         txtTitle = findViewById(R.id.txtTitle)
         txtArtist = findViewById(R.id.txtArtist)
@@ -96,11 +108,17 @@ class NowPlayingActivity : AppCompatActivity() {
         })
 
         PlayerController.connect(this) {
+            // Re-apply EQ for current session when opening player
+            val sid = MusicService.audioSessionId
+            if (sid != 0) EqEngine.apply(this, sid)
+
             PlayerController.controller?.addListener(object : Player.Listener {
                 override fun onIsPlayingChanged(isPlaying: Boolean) { refresh() }
                 override fun onMediaItemTransition(item: androidx.media3.common.MediaItem?, reason: Int) {
                     refresh()
                     PlayerController.saveState(this@NowPlayingActivity)
+                    val id = MusicService.audioSessionId
+                    if (id != 0) EqEngine.apply(this@NowPlayingActivity, id)
                 }
                 override fun onRepeatModeChanged(repeatMode: Int) { updateModeButtons() }
                 override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) { updateModeButtons() }
@@ -135,6 +153,8 @@ class NowPlayingActivity : AppCompatActivity() {
         super.onResume()
         handler.post(tick)
         refresh()
+        val name = prefs.getCurrentPlaylistName()
+        if (name.isNotBlank()) toolbar.subtitle = name
     }
 
     override fun onPause() {

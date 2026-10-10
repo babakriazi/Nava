@@ -23,6 +23,8 @@ import androidx.viewpager2.adapter.FragmentStateAdapter
 import com.babakriazi.nava.data.MusicRepository
 import com.babakriazi.nava.data.Prefs
 import com.babakriazi.nava.data.Song
+import com.babakriazi.nava.playback.EqEngine
+import com.babakriazi.nava.playback.MusicService
 import com.babakriazi.nava.playback.PlayerController
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.tabs.TabLayout
@@ -75,6 +77,7 @@ class MainActivity : AppCompatActivity() {
         miniPlayer = findViewById(R.id.miniPlayer)
         miniTitle = findViewById(R.id.miniTitle)
         miniPlayPause = findViewById(R.id.miniPlayPause)
+        miniPlayer.visibility = View.GONE
         findViewById<ImageButton>(R.id.miniNext).setOnClickListener { PlayerController.next() }
 
         miniPlayer.setOnClickListener {
@@ -88,14 +91,23 @@ class MainActivity : AppCompatActivity() {
                 override fun onIsPlayingChanged(isPlaying: Boolean) {
                     updateMini()
                     if (!isPlaying) PlayerController.saveState(this@MainActivity)
+                    val sid = MusicService.audioSessionId
+                    if (sid != 0) EqEngine.apply(this@MainActivity, sid)
                 }
                 override fun onMediaItemTransition(item: androidx.media3.common.MediaItem?, reason: Int) {
                     updateMini()
                     PlayerController.saveState(this@MainActivity)
+                    val sid = MusicService.audioSessionId
+                    if (sid != 0) EqEngine.apply(this@MainActivity, sid)
                 }
             })
             updateMini()
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        updateMini()
     }
 
     override fun onPause() {
@@ -111,11 +123,15 @@ class MainActivity : AppCompatActivity() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
             R.id.action_play_all -> {
-                if (allSongs.isNotEmpty()) playSongList(sortedSongs(), 0)
+                if (allSongs.isNotEmpty()) {
+                    prefs.setCurrentPlaylistName("")
+                    playSongList(sortedSongs(), 0)
+                }
                 return true
             }
             R.id.action_shuffle_all -> {
                 if (allSongs.isNotEmpty()) {
+                    prefs.setCurrentPlaylistName("")
                     playSongList(sortedSongs(), 0)
                     PlayerController.setShuffle(true)
                     prefs.setShuffle(true)
@@ -212,11 +228,13 @@ class MainActivity : AppCompatActivity() {
         PlayerController.connect(this) {
             val c = PlayerController.controller ?: return@connect
             if (c.mediaItemCount == 0) {
+                // Prepare queue silently — do NOT auto-play; mini stays hidden until user plays
                 PlayerController.playSongs(queue, index, pos)
                 c.pause()
                 PlayerController.setShuffle(prefs.getShuffle())
                 PlayerController.setRepeat(prefs.getRepeatMode())
-                updateMini()
+                // Keep mini hidden when only restored/paused with no active user play this session
+                updateMini(forceHideIfPausedRestore = true)
             }
         }
     }
@@ -227,18 +245,31 @@ class MainActivity : AppCompatActivity() {
             prefs.setLastSongIds(songs.map { it.id })
             prefs.setLastIndex(index)
             prefs.setLastPosition(0)
+            val sid = MusicService.audioSessionId
+            if (sid != 0) EqEngine.apply(this, sid)
             updateMini()
         }
     }
 
-    private fun updateMini() {
+    private fun updateMini(forceHideIfPausedRestore: Boolean = false) {
         val c = PlayerController.controller
         if (c == null || c.mediaItemCount == 0) {
             miniPlayer.visibility = View.GONE
             return
         }
+        val title = c.mediaMetadata.title?.toString()?.trim().orEmpty()
+        // Hide empty-looking bar: no title and not playing
+        if (title.isEmpty() && !c.isPlaying) {
+            miniPlayer.visibility = View.GONE
+            return
+        }
+        // After cold restore, keep hidden until user actually starts playback once
+        if (forceHideIfPausedRestore && !c.isPlaying) {
+            miniPlayer.visibility = View.GONE
+            return
+        }
         miniPlayer.visibility = View.VISIBLE
-        miniTitle.text = c.mediaMetadata.title ?: ""
+        miniTitle.text = title
         miniPlayPause.setImageResource(
             if (c.isPlaying) android.R.drawable.ic_media_pause
             else android.R.drawable.ic_media_play

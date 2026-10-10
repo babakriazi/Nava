@@ -1,5 +1,6 @@
 package com.babakriazi.nava
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -21,6 +22,7 @@ class PlaylistDetailActivity : AppCompatActivity() {
 
     private lateinit var repo: MusicRepository
     private lateinit var playlistId: String
+    private lateinit var playlistName: String
     private lateinit var adapter: SongAdapter
     private lateinit var recycler: RecyclerView
     private lateinit var empty: TextView
@@ -32,12 +34,12 @@ class PlaylistDetailActivity : AppCompatActivity() {
         setContentView(R.layout.activity_playlist_detail)
 
         playlistId = intent.getStringExtra("playlist_id") ?: run { finish(); return }
-        val name = intent.getStringExtra("playlist_name") ?: "Playlist"
+        playlistName = intent.getStringExtra("playlist_name") ?: "Playlist"
 
         repo = MusicRepository(this)
 
         toolbar = findViewById(R.id.toolbar)
-        toolbar.setTitle(name)
+        toolbar.setTitle(playlistName)
         toolbar.setNavigationOnClickListener { finish() }
 
         recycler = findViewById(R.id.recycler)
@@ -83,6 +85,7 @@ class PlaylistDetailActivity : AppCompatActivity() {
         toolbar.subtitle = getString(R.string.songs_count, songs.size)
     }
 
+    /** Start playback with main player, then open full Now Playing screen */
     private fun playList(list: List<Song>, index: Int, shuffle: Boolean) {
         PlayerController.connect(this) {
             PlayerController.playSongs(list, index)
@@ -91,6 +94,12 @@ class PlaylistDetailActivity : AppCompatActivity() {
             prefs.setLastSongIds(list.map { it.id })
             prefs.setLastIndex(index)
             prefs.setShuffle(shuffle)
+            prefs.setCurrentPlaylistName(playlistName)
+            startActivity(
+                Intent(this, NowPlayingActivity::class.java).apply {
+                    putExtra("playlist_name", playlistName)
+                }
+            )
         }
     }
 

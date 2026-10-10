@@ -46,4 +46,7 @@ class Prefs(context: Context) {
 
     fun getBandsSaved(): Boolean = p.getBoolean("bands_saved", false)
     fun setBandsSaved(v: Boolean) { p.edit().putBoolean("bands_saved", v).apply() }
+
+    fun getCurrentPlaylistName(): String = p.getString("current_playlist", "") ?: ""
+    fun setCurrentPlaylistName(v: String) { p.edit().putString("current_playlist", v).apply() }
 }
