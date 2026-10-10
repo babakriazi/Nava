@@ -4,14 +4,14 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Simplified gold calligraphy-inspired mark for نوا -->
+    <!-- Stylized gold نوا inspired mark -->
     <path
         android:fillColor="#C9A227"
-        android:pathData="M30,72 C34,58 42,48 54,46 C48,52 46,60 48,70 C50,78 56,82 62,78 C68,74 70,64 66,56 C62,48 52,44 48,38 C56,36 68,40 74,50 C80,60 78,74 68,82 C58,90 42,88 34,78 C28,70 28,78 30,72 Z" />
+        android:pathData="M28,70 C32,52 40,42 52,40 C46,48 44,58 46,68 C48,78 58,82 66,76 C72,72 74,62 70,54 C66,46 56,42 52,36 C62,34 76,40 82,52 C88,64 86,78 74,86 C62,94 42,92 32,80 C26,72 26,76 28,70 Z" />
     <path
         android:fillColor="#C9A227"
-        android:pathData="M72,32 L76,28 L80,34 L76,38 Z" />
+        android:pathData="M70,30 L75,26 L79,32 L74,36 Z" />
     <path
         android:fillColor="#C9A227"
-        android:pathData="M78,42 C82,48 84,58 82,68 C80,78 74,84 70,82 C76,72 78,58 78,42 Z" />
+        android:pathData="M76,40 C80,48 82,60 80,72 C78,82 72,88 68,86 C74,74 76,56 76,40 Z" />
 </vector>

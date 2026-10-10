@@ -75,6 +75,8 @@ object PlayerController {
             prefs.setLastPosition(c.currentPosition.coerceAtLeast(0))
             prefs.setShuffle(c.shuffleModeEnabled)
             prefs.setRepeatMode(c.repeatMode)
+            val title = c.mediaMetadata.title?.toString()?.trim().orEmpty()
+            if (title.isNotBlank()) prefs.setLastTitle(title)
         }
     }
 }
